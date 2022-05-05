@@ -73,6 +73,13 @@ if(TESSERACT_BUILD_TRAJOPT_IFOPT)
   add_subdirectory(trajopt_ifopt)
 endif()
 
+# 3mo
+option(TESSERACT_BUILD_3MO "Build the Trajopt IFOPT planner" ON)
+if(TESSERACT_BUILD_3MO)
+  message("Building Mixed Mobilde Manipulator Optimization Planner")
+  add_subdirectory(3mo)
+endif()
+
 # Examples
 if(TESSERACT_ENABLE_EXAMPLES)
   add_subdirectory(examples)
