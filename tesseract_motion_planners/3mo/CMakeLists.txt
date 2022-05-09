@@ -5,7 +5,8 @@ find_package(tesseract_command_language REQUIRED)
 add_library(
   ${PROJECT_NAME}_3mo
   src/3mo_motion_planner.cpp
-  src/profile/3mo_planner_simple_plan_profile.cpp
+  src/3mo_utils.cpp
+  src/profile/3mo_planner_plan_profile.cpp
   )
 target_link_libraries(${PROJECT_NAME}_3mo PUBLIC ${PROJECT_NAME}_core Boost::boost)
 target_compile_options(${PROJECT_NAME}_3mo PRIVATE ${TESSERACT_COMPILE_OPTIONS_PRIVATE})

@@ -1,5 +1,5 @@
 /**
- * @file simple_planner_default_lvs_plan_profile.cpp
+ * @file 3mo_planner_simple_plan_profile.cpp
  * @brief
  *
  * @author Tyler Marr
@@ -24,34 +24,40 @@
  * limitations under the License.
  */
 
-#include <tesseract_motion_planners/simple/profile/simple_planner_lvs_plan_profile.h>
+#include <AStar.hpp>
+#include <tesseract_motion_planners/3mo/profile/3mo_planner_plan_profile.h>
+#include <tesseract_motion_planners/3mo/3mo_utils.h>
 #include <tesseract_motion_planners/core/utils.h>
+
+using namespace tesseract_kinematics;
 
 namespace tesseract_planning
 {
-SimplePlannerLVSPlanProfile::SimplePlannerLVSPlanProfile(double state_longest_valid_segment_length,
-                                                         double translation_longest_valid_segment_length,
-                                                         double rotation_longest_valid_segment_length,
-                                                         int min_steps)
-  : state_longest_valid_segment_length(state_longest_valid_segment_length)
+MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(MapInfo& map,
+                                               int min_steps,
+                                               double state_longest_valid_segment_length,
+                                               double translation_longest_valid_segment_length,
+                                               double rotation_longest_valid_segment_length)
+  : map_(MapInfo(map.map_x, map.map_y, map.step_size))
+  , state_longest_valid_segment_length(state_longest_valid_segment_length)
   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
   , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
   , min_steps(min_steps)
 {
 }
 
-CompositeInstruction SimplePlannerLVSPlanProfile::generate(const PlanInstruction& prev_instruction,
-                                                           const MoveInstruction& /*prev_seed*/,
-                                                           const PlanInstruction& base_instruction,
-                                                           const Instruction& /*next_instruction*/,
-                                                           const PlannerRequest& request,
-                                                           const ManipulatorInfo& global_manip_info) const
+CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& prev_instruction,
+                                                      const MoveInstruction& /*prev_seed*/,
+                                                      const PlanInstruction& base_instruction,
+                                                      const Instruction& /*next_instruction*/,
+                                                      const PlannerRequest& request,
+                                                      const ManipulatorInfo& global_manip_info) const
 {
   KinematicGroupInstructionInfo info1(prev_instruction, request, global_manip_info);
   KinematicGroupInstructionInfo info2(base_instruction, request, global_manip_info);
 
   if (!info1.has_cartesian_waypoint && !info2.has_cartesian_waypoint)
-    return stateJointJointWaypoint(info1, info2);
+    return stateJointJointWaypoint(info1, info2, request);
 
   if (!info1.has_cartesian_waypoint && info2.has_cartesian_waypoint)
     return stateJointCartWaypoint(info1, info2);
@@ -62,37 +68,90 @@ CompositeInstruction SimplePlannerLVSPlanProfile::generate(const PlanInstruction
   return stateCartCartWaypoint(info1, info2, request);
 }
 
-CompositeInstruction
-SimplePlannerLVSPlanProfile::stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
-                                                     const KinematicGroupInstructionInfo& base) const
+CompositeInstruction MMMOPlannerPlanProfile::stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                                     const KinematicGroupInstructionInfo& base,
+                                                                     const PlannerRequest& request) const
 {
-  // Calculate FK for start and end
-  const Eigen::VectorXd& j1 = prev.extractJointPosition();
-  Eigen::Isometry3d p1_world = prev.calcCartesianPose(j1);
+  // trans dist, rot dist, joint dist is not in use for now
+  // get kin group
+  KinematicGroup::UPtr kin_group = request.env->getKinematicGroup(prev.manip->getName());
+  tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager_ =
+      std::move(request.env->getDiscreteContactManager()->clone());
+  for (auto& active_link : discrete_contact_manager_->getActiveCollisionObjects())
+  {
+    discrete_contact_manager_->enableCollisionObject(active_link);
+  }
+  tesseract_collision::ContactResultMap contact_results;
+  auto joint_target = base.extractJointPosition();
+  auto joint_start = prev.extractJointPosition();
 
-  const Eigen::VectorXd& j2 = base.extractJointPosition();
-  Eigen::Isometry3d p2_world = base.calcCartesianPose(j2);
+  // init base trajectory
+  Eigen::Isometry3d base_start_pose;
+  base_start_pose.setIdentity();
+  base_start_pose.translation() = Eigen::Vector3d(joint_start[0], joint_start[1], 0.13);
+  Eigen::Isometry3d base_target_pose;
+  base_target_pose.setIdentity();
+  base_target_pose.translation() = Eigen::Vector3d(joint_target[0], joint_target[1], 0.13);
 
-  double trans_dist = (p2_world.translation() - p1_world.translation()).norm();
-  double rot_dist = Eigen::Quaterniond(p1_world.linear()).angularDistance(Eigen::Quaterniond(p2_world.linear()));
-  double joint_dist = (j2 - j1).norm();
+  int base_x = int(round((base_start_pose.translation()[0] + map_.map_x / 2.0) / map_.step_size));
+  int base_y = int(round((base_start_pose.translation()[1] + map_.map_y / 2.0) / map_.step_size));
 
-  int trans_steps = int(trans_dist / translation_longest_valid_segment_length) + 1;
-  int rot_steps = int(rot_dist / rotation_longest_valid_segment_length) + 1;
-  int joint_steps = int(joint_dist / state_longest_valid_segment_length) + 1;
+  int end_x = int(round((base_target_pose.translation()[0] + map_.map_x / 2.0) / map_.step_size));
+  int end_y = int(round((base_target_pose.translation()[1] + map_.map_y / 2.0) / map_.step_size));
+  Eigen::Isometry3d base_tf;
+  std::vector<std::string> link_names = kin_group->getLinkNames();
 
-  int steps = std::max(trans_steps, rot_steps);
-  steps = std::max(steps, joint_steps);
-  steps = std::max(steps, min_steps);
+  for (auto& link_name : link_names)
+  {
+    if (link_name != "base_link" && link_name != "world")
+    {
+      if (!discrete_contact_manager_->removeCollisionObject(link_name))
+      {
+        // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
+      }
+    }
+  }
 
-  // Linearly interpolate in joint space
-  Eigen::MatrixXd states = interpolate(j1, j2, steps);
-  return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+  AStar::Generator astar_generator;
+  astar_generator.setWorldSize({ map_.grid_size_x, map_.grid_size_y });
+  astar_generator.setHeuristic(AStar::Heuristic::euclidean);
+  astar_generator.setDiagonalMovement(true);
+
+  // add collisions
+  for (int x = 0; x < map_.grid_size_x; ++x)
+  {
+    for (int y = 0; y < map_.grid_size_y; ++y)
+    {
+      base_tf.setIdentity();
+      contact_results.clear();
+      base_tf.translation() =
+          Eigen::Vector3d(-map_.map_x / 2.0 + x * map_.step_size, -map_.map_y / 2.0 + y * map_.step_size, 0.13);
+      if (!isEmptyCell(discrete_contact_manager_, "base_link", base_tf, contact_results) &&
+          (!(x == base_x && y == base_y) && !(x == end_x && y == end_y)))
+      {
+        // std::cout << "o";
+        // std::cout << x << ":\t" << y << std::endl;
+        astar_generator.addCollision({ x, y });
+      }
+      else if (x == base_x && y == base_y)
+      {
+        // std::cout << "S";
+      }
+      else if (x == end_x && y == end_y)
+      {
+        // std::cout << "G";
+      }
+      else
+      {
+        // std::cout << "+";
+      }
+    }
+    // std::cout << "" << std::endl;
+  }
 }
 
-CompositeInstruction
-SimplePlannerLVSPlanProfile::stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
-                                                    const KinematicGroupInstructionInfo& base) const
+CompositeInstruction MMMOPlannerPlanProfile::stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                                    const KinematicGroupInstructionInfo& base) const
 {
   // Calculate FK for start
   const Eigen::VectorXd& j1 = prev.extractJointPosition();
@@ -131,9 +190,8 @@ SimplePlannerLVSPlanProfile::stateJointCartWaypoint(const KinematicGroupInstruct
   return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
 }
 
-CompositeInstruction
-SimplePlannerLVSPlanProfile::stateCartJointWaypoint(const KinematicGroupInstructionInfo& prev,
-                                                    const KinematicGroupInstructionInfo& base) const
+CompositeInstruction MMMOPlannerPlanProfile::stateCartJointWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                                    const KinematicGroupInstructionInfo& base) const
 {
   // Calculate FK for end
   const Eigen::VectorXd& j2 = base.extractJointPosition();
@@ -172,9 +230,9 @@ SimplePlannerLVSPlanProfile::stateCartJointWaypoint(const KinematicGroupInstruct
   return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
 }
 
-CompositeInstruction SimplePlannerLVSPlanProfile::stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
-                                                                        const KinematicGroupInstructionInfo& base,
-                                                                        const PlannerRequest& request) const
+CompositeInstruction MMMOPlannerPlanProfile::stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                                   const KinematicGroupInstructionInfo& base,
+                                                                   const PlannerRequest& request) const
 {
   // Get IK seed
   Eigen::VectorXd seed = request.env_state.getJointValues(base.manip->getJointNames());

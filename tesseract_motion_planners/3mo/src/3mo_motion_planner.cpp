@@ -5,12 +5,13 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_motion_planners/3mo/3mo_motion_planner.h>
-#include <tesseract_motion_planners/3mo/profile/3mo_planner_simple_plan_profile.h>
+#include <tesseract_motion_planners/3mo/profile/3mo_planner_plan_profile.h>
 #include <tesseract_motion_planners/core/utils.h>
 #include <tesseract_command_language/command_language.h>
 #include <tesseract_command_language/utils/utils.h>
 #include <tesseract_command_language/state_waypoint.h>
 #include <tesseract_motion_planners/planner_utils.h>
+#include <tesseract_motion_planners/3mo/3mo_utils.h>
 
 namespace tesseract_planning
 {
@@ -210,21 +211,20 @@ CompositeInstruction MMMOMotionPlanner::processCompositeInstruction(const Compos
 
       // If a path profile exists for the instruction it should use that instead of the termination profile
       SimplePlannerPlanProfile::ConstPtr plan_profile;
-      if (base_instruction.getPathProfile().empty())
-      {
-        std::string profile = getProfileString(name_, base_instruction.getProfile(), request.plan_profile_remapping);
-        plan_profile = getProfile<SimplePlannerPlanProfile>(
-            name_, profile, *request.profiles, std::make_shared<SimplePlannerLVSNoIKPlanProfile>());
-        plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
-      }
-      else
-      {
-        std::string profile =
-            getProfileString(name_, base_instruction.getPathProfile(), request.plan_profile_remapping);
-        plan_profile = getProfile<SimplePlannerPlanProfile>(
-            name_, profile, *request.profiles, std::make_shared<SimplePlannerLVSNoIKPlanProfile>());
-        plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
-      }
+      // if (base_instruction.getPathProfile().empty())
+      // {
+      //   std::string profile = getProfileString(name_, base_instruction.getProfile(), request.plan_profile_remapping);
+      //   plan_profile = getProfile<SimplePlannerPlanProfile>(name_, profile, *request.profiles, std::make_shared<>());
+      //   plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
+      // }
+      // else
+      // {
+      //   std::string profile =
+      //       getProfileString(name_, base_instruction.getPathProfile(), request.plan_profile_remapping);
+      //   plan_profile = getProfile<SimplePlannerPlanProfile>(
+      //       name_, profile, *request.profiles, std::make_shared<SimplePlannerLVSNoIKPlanProfile>());
+      //   plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
+      // }
 
       if (!plan_profile)
         throw std::runtime_error("MMMOMotionPlanner: Invalid profile");
