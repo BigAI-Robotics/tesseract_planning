@@ -31,6 +31,7 @@ namespace tesseract_planning::profile_ns
 // clang-format off
 static const std::string SIMPLE_DEFAULT_NAMESPACE        = "SIMPLE_PLANNER";
 static const std::string DESCARTES_DEFAULT_NAMESPACE     = "DESCARTES";
+static const std::string MMMO_DEFAULT_NAMESPACE          = "3MO";
 static const std::string OMPL_DEFAULT_NAMESPACE          = "OMPL";
 static const std::string TRAJOPT_DEFAULT_NAMESPACE       = "TRAJOPT";
 static const std::string TRAJOPT_IFOPT_DEFAULT_NAMESPACE = "TRAJOPT_IFOPT";

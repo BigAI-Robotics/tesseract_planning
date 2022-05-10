@@ -50,7 +50,7 @@ struct MapInfo
   int grid_size_x;
   int grid_size_y;
 
-  MapInfo(int x, int y, double step) : map_x(x), map_y(y), step_size(step)
+  MapInfo(int x=12, int y=12, double step=0.5) : map_x(x), map_y(y), step_size(step)
   {
     grid_size_x = int(map_x / step_size) + 1;
     grid_size_y = int(map_y / step_size) + 1;

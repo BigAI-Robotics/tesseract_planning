@@ -39,7 +39,7 @@ public:
   using ConstPtr = std::shared_ptr<const MMMOMotionPlanner>;
 
   /** @brief Construct a basic planner */
-  MMMOMotionPlanner(std::string name = profile_ns::SIMPLE_DEFAULT_NAMESPACE);
+  MMMOMotionPlanner(std::string name = profile_ns::MMMO_DEFAULT_NAMESPACE);
   ~MMMOMotionPlanner() override = default;
   MMMOMotionPlanner(const MMMOMotionPlanner&) = delete;
   MMMOMotionPlanner& operator=(const MMMOMotionPlanner&) = delete;
