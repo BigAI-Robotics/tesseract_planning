@@ -50,7 +50,7 @@ struct MapInfo
   int grid_size_x;
   int grid_size_y;
 
-  MapInfo(int x=12, int y=12, double step=0.5) : map_x(x), map_y(y), step_size(step)
+  MapInfo(int x = 12, int y = 12, double step = 0.5) : map_x(x), map_y(y), step_size(step)
   {
     grid_size_x = int(map_x / step_size) + 1;
     grid_size_y = int(map_y / step_size) + 1;
@@ -72,7 +72,15 @@ public:
    * @param min_steps The minimum number of steps for the plan
    */
   MMMOPlannerPlanProfile(MapInfo& map,
-                         int min_steps = 1,
+                         int min_steps = 30,
+                         double state_longest_valid_segment_length = 5 * M_PI / 180,
+                         double translation_longest_valid_segment_length = 0.1,
+                         double rotation_longest_valid_segment_length = 5 * M_PI / 180);
+
+  MMMOPlannerPlanProfile(int x = 12,
+                         int y = 12,
+                         double res = 0.5,
+                         int min_steps = 30,
                          double state_longest_valid_segment_length = 5 * M_PI / 180,
                          double translation_longest_valid_segment_length = 0.1,
                          double rotation_longest_valid_segment_length = 5 * M_PI / 180);
@@ -83,6 +91,8 @@ public:
                                 const Instruction& next_instruction,
                                 const PlannerRequest& request,
                                 const ManipulatorInfo& global_manip_info) const;
+
+  MapInfo map_;
 
   /** @brief The maximum joint distance, the norm of changes to all joint positions between successive steps. */
   double state_longest_valid_segment_length;
@@ -95,8 +105,6 @@ public:
 
   /** @brief The minimum number of steps for the plan */
   int min_steps;
-
-  MapInfo map_;
 
 protected:
   /**
@@ -136,7 +144,8 @@ protected:
    * @return A composite instruction of move instruction with state waypoints
    **/
   CompositeInstruction stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
-                                              const KinematicGroupInstructionInfo& base) const;
+                                              const KinematicGroupInstructionInfo& base,
+                                              const PlannerRequest& request) const;
 
   /**
    * @brief CartesianWaypoint to JointWaypoint
@@ -186,6 +195,18 @@ protected:
   CompositeInstruction stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
                                              const KinematicGroupInstructionInfo& base,
                                              const PlannerRequest& request) const;
+
+  Eigen::MatrixXd getJointJointSeed(const Eigen::VectorXd& joint_start,
+                                    const Eigen::VectorXd& joint_target,
+                                    const PlannerRequest& request,
+                                    tesseract_kinematics::KinematicGroup::Ptr kin_group) const;
+
+  void initBaseTrajectory_(tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                           tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
+                           const Eigen::VectorXd& joint_start,
+                           const Eigen::VectorXd& joint_target,
+                           std::vector<Eigen::Isometry3d>& base_poses,
+                           int steps) const;
 };
 
 }  // namespace tesseract_planning
