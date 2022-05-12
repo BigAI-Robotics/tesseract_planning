@@ -4,6 +4,7 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <string>
+#include <map>
 #include <boost/serialization/base_object.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
@@ -11,6 +12,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_planning
 {
+
 class MixedWaypoint
 {
 public:
@@ -18,6 +20,12 @@ public:
 
   bool operator==(const MixedWaypoint& rhs) const;
   bool operator!=(const MixedWaypoint& rhs) const;
+
+  std::map<std::string, double> joint_targets;
+  std::map<std::string, Eigen::Isometry3d> link_targets;
+
+  void addJointTarget(std::string joint_name, double joint_value);
+  void addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf);
 
 private:
   friend class boost::serialization::access;

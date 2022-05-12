@@ -35,6 +35,16 @@ namespace tesseract_planning
 {
 void MixedWaypoint::print(const std::string& prefix) const { std::cout << prefix << "Null WP"; }  // NOLINT
 
+void MixedWaypoint::addJointTarget(std::string joint_name, double joint_value)
+{
+  joint_targets[joint_name] = joint_value;
+}
+
+void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf)
+{
+  link_targets[link_name] = link_tf;
+}
+
 bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const { return true; }
 bool MixedWaypoint::operator!=(const MixedWaypoint& /*rhs*/) const { return false; }
 
