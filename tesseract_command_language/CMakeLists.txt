@@ -57,6 +57,7 @@ add_library(
   src/state_waypoint.cpp
   src/cartesian_waypoint.cpp
   src/joint_waypoint.cpp
+  src/mixed_waypoint.cpp
   src/utils/flatten_utils.cpp
   src/utils/filter_functions.cpp
   src/utils/get_instruction_utils.cpp

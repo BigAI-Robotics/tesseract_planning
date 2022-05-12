@@ -34,6 +34,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_command_language/cartesian_waypoint.h>
 #include <tesseract_command_language/joint_waypoint.h>
 #include <tesseract_command_language/state_waypoint.h>
+#include <tesseract_command_language/mixed_waypoint.h>
 
 namespace tesseract_planning
 {
@@ -50,6 +51,11 @@ bool isJointWaypoint(const Waypoint& waypoint)
 bool isStateWaypoint(const Waypoint& waypoint)
 {
   return (waypoint.getType() == std::type_index(typeid(StateWaypoint)));
+}
+
+bool isMixedWaypoint(const Waypoint& waypoint)
+{
+  return (waypoint.getType() == std::type_index(typeid(MixedWaypoint)));
 }
 
 bool isNullWaypoint(const Waypoint& waypoint) { return (waypoint.getType() == std::type_index(typeid(NullWaypoint))); }

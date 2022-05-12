@@ -1,5 +1,5 @@
 /**
- * @file waypoint_type.h
+ * @file null_waypoint.cpp
  * @brief
  *
  * @author Levi Armstrong
@@ -23,22 +23,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef TESSERACT_COMMAND_LANGUAGE_WAYPOINT_TYPE_H
-#define TESSERACT_COMMAND_LANGUAGE_WAYPOINT_TYPE_H
+
+#include <tesseract_common/macros.h>
+TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
+#include <iostream>
+TESSERACT_COMMON_IGNORE_WARNINGS_POP
+
+#include <tesseract_command_language/mixed_waypoint.h>
 
 namespace tesseract_planning
 {
-class Waypoint;
+void MixedWaypoint::print(const std::string& prefix) const { std::cout << prefix << "Null WP"; }  // NOLINT
 
-bool isCartesianWaypoint(const Waypoint& waypoint);
+bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const { return true; }
+bool MixedWaypoint::operator!=(const MixedWaypoint& /*rhs*/) const { return false; }
 
-bool isJointWaypoint(const Waypoint& waypoint);
-
-bool isStateWaypoint(const Waypoint& waypoint);
-
-bool isMixedWaypoint(const Waypoint& waypoint);
-
-bool isNullWaypoint(const Waypoint& waypoint);
-
+template <class Archive>
+void MixedWaypoint::serialize(Archive& /*ar*/, const unsigned int /*version*/)
+{
+}
 }  // namespace tesseract_planning
-#endif  // TESSERACT_COMMAND_LANGUAGE_WAYPOINT_TYPE_H
+
+#include <tesseract_common/serialization.h>
+TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::MixedWaypoint)
+TESSERACT_WAYPOINT_EXPORT_IMPLEMENT(tesseract_planning::MixedWaypoint);
