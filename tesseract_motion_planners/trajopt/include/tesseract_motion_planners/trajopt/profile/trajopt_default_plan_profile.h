@@ -35,6 +35,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_command_language/cartesian_waypoint.h>
 #include <tesseract_command_language/joint_waypoint.h>
+#include <tesseract_command_language/mixed_waypoint.h>
 #include <tesseract_motion_planners/trajopt/profile/trajopt_profile.h>
 
 #ifdef SWIG
@@ -91,6 +92,13 @@ public:
 
   void apply(trajopt::ProblemConstructionInfo& pci,
              const JointWaypoint& joint_waypoint,
+             const Instruction& parent_instruction,
+             const ManipulatorInfo& manip_info,
+             const std::vector<std::string>& active_links,
+             int index) const override;
+
+  void apply(trajopt::ProblemConstructionInfo& pci,
+             const MixedWaypoint& mixed_waypoint,
              const Instruction& parent_instruction,
              const ManipulatorInfo& manip_info,
              const std::vector<std::string>& active_links,

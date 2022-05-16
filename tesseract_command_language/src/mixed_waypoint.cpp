@@ -33,7 +33,16 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_planning
 {
-void MixedWaypoint::print(const std::string& prefix) const { std::cout << prefix << "Null WP"; }  // NOLINT
+void MixedWaypoint::print(const std::string& prefix) const
+{
+  {
+    std::cout << prefix << "Mixed WP: joint_names: ";
+    for (auto name : joint_names)
+    {
+      std::cout << name << ", ";
+    }
+  }
+}
 
 void MixedWaypoint::addJointTarget(std::string joint_name, double joint_value)
 {

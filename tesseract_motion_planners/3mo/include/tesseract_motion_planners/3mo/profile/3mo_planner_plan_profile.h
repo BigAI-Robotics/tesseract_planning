@@ -107,6 +107,10 @@ public:
   int min_steps;
 
 protected:
+  CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
+                                              const KinematicGroupInstructionInfo& base,
+                                              const PlannerRequest& request) const;
+
   /**
    * @brief JointWaypoint to JointWaypoint
    *

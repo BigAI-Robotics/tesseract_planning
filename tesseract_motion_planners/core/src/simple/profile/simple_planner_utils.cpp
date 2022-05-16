@@ -114,6 +114,9 @@ KinematicGroupInstructionInfo::KinematicGroupInstructionInfo(const PlanInstructi
     has_cartesian_waypoint = false;
   else if (isCartesianWaypoint(plan_instruction.getWaypoint()))
     has_cartesian_waypoint = true;
+  else if (isMixedWaypoint(plan_instruction.getWaypoint())){
+    has_mixed_waypoint = true;
+  }
   else
     throw std::runtime_error("Simple planner currently only supports State, Joint and Cartesian Waypoint types!");
 }

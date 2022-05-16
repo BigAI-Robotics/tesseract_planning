@@ -55,20 +55,16 @@ std::string TrajOptMotionPlannerStatusCategory::message(int code) const
 {
   switch (code)
   {
-    case SolutionFound:
-    {
+    case SolutionFound: {
       return "Found valid solution";
     }
-    case ErrorInvalidInput:
-    {
+    case ErrorInvalidInput: {
       return "Input to planner is invalid. Check that instructions and seed are compatible";
     }
-    case FailedToFindValidSolution:
-    {
+    case FailedToFindValidSolution: {
       return "Failed to find valid solution";
     }
-    default:
-    {
+    default: {
       assert(false);
       return "";
     }
@@ -586,6 +582,15 @@ TrajOptMotionPlanner::createProblem(const PlannerRequest& request) const
           // Add final point with waypoint costs and constraints
           /** @todo Should check that the joint names match the order of the manipulator */
           cur_plan_profile->apply(*pci, cur_wp, plan_instruction, composite_mi, active_links, index);
+        }
+        // added for mixed waypoint
+        else if (isMixedWaypoint(plan_instruction.getWaypoint()))
+        {
+          const auto& mixed_wp = plan_instruction.getWaypoint().as<MixedWaypoint>();
+          for (std::size_t s = 0; s < seed_composite.size() - 1; ++s)
+            ++index;
+
+          cur_plan_profile->apply(*pci, mixed_wp, plan_instruction, composite_mi, active_links, index);
         }
         else
         {

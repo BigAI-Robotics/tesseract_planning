@@ -95,7 +95,7 @@ tesseract_common::StatusCode MMMOMotionPlanner::solve(const PlannerRequest& requ
   }
   catch (std::exception& e)
   {
-    CONSOLE_BRIDGE_logError("SimplePlanner failed to generate problem: %s.", e.what());
+    CONSOLE_BRIDGE_logError("MMMOMotionPlanner failed to generate problem: %s.", e.what());
     response.status =
         tesseract_common::StatusCode(MMMOMotionPlannerStatusCategory::ErrorInvalidInput, status_category_);
     return response.status;
@@ -237,6 +237,7 @@ CompositeInstruction MMMOMotionPlanner::processCompositeInstruction(const Compos
                                                                      next_instruction,
                                                                      request,
                                                                      request.instructions.getManipulatorInfo());
+      seed.print("test 3mo seed");
       seed.push_back(instruction_seed);
 
       prev_instruction = base_instruction;

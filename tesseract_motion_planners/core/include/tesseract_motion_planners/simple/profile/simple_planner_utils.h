@@ -87,6 +87,7 @@ struct KinematicGroupInstructionInfo
   std::string tcp_frame;
   Eigen::Isometry3d tcp_offset{ Eigen::Isometry3d::Identity() };
   bool has_cartesian_waypoint{ false };
+  bool has_mixed_waypoint{ false };
 
   /**
    * @brief Calculate the cartesian pose given the joint solution

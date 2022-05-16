@@ -59,6 +59,7 @@ MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int x,
   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
   , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
 {
+  
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& prev_instruction,
@@ -72,7 +73,9 @@ CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& pre
   KinematicGroupInstructionInfo info2(base_instruction, request, global_manip_info);
 
   if (!info1.has_cartesian_waypoint && !info2.has_cartesian_waypoint)
-    return stateJointJointWaypoint(info1, info2, request);
+    if (info2.has_mixed_waypoint)
+      return stateJointMixedWaypoint(info1, info2, request);
+  return stateJointJointWaypoint(info1, info2, request);
 
   if (!info1.has_cartesian_waypoint && info2.has_cartesian_waypoint)
     return stateJointCartWaypoint(info1, info2, request);
@@ -81,6 +84,12 @@ CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& pre
     return stateCartJointWaypoint(info1, info2);
 
   return stateCartCartWaypoint(info1, info2, request);
+}
+
+CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                                     const KinematicGroupInstructionInfo& base,
+                                                                     const PlannerRequest& request) const
+{
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
