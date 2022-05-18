@@ -193,7 +193,7 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
                                       int index) const
 {
   std::vector<trajopt::TermInfo::Ptr> term_infos;
-
+  // CONSOLE_BRIDGE_logInform("applying trajopt plan profile to mixed waypoint");
   size_t joint_num = mixed_waypoint.joint_names.size();
   // generate waypoint and coeff from target joint values
   Eigen::VectorXd adjusted_joint_coeff = Eigen::VectorXd::Zero(joint_num);
@@ -205,8 +205,8 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
     {
       throw std::logic_error("cannot find target joint name");
     }
-    int idx = it - mixed_waypoint.joint_names.begin();
-    adjusted_joint_coeff(idx) = joint_coeff(idx);
+    int idx = std::distance(mixed_waypoint.joint_names.begin(), it);
+    adjusted_joint_coeff(idx) = joint_coeff.size() == adjusted_joint_coeff.size() ? joint_coeff(idx) : joint_coeff(0); // fixed joint coeff size
     joint_waypoint(idx) = t.second;
   }
 
@@ -215,6 +215,8 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
   assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
   ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
   Eigen::Isometry3d tcp_offset = pci.env->findTCPOffset(mi);
+  
+  // CONSOLE_BRIDGE_logDebug("creating joint and cartesian terms");
 
   auto ti_joint = createJointWaypointTermInfo(joint_waypoint, index, adjusted_joint_coeff, term_type);
   term_infos.push_back(ti_joint);
@@ -228,16 +230,6 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
     term_infos.push_back(ti_cartesian);
   }
 
-  // if (joint_waypoint.isToleranced())
-  //   ti = createTolerancedJointWaypointTermInfo(
-  //       joint_waypoint, joint_waypoint.lower_tolerance, joint_waypoint.upper_tolerance, index, joint_coeff,
-  //       term_type);
-  // else
-
-  // auto ti = createCartesianWaypointTermInfo(
-  //     index, mi.working_frame, cartesian_waypoint, mi.tcp_frame, tcp_offset, cartesian_coeff, term_type);
-
-  // term_infos.push_back(ti);
 
   for (auto ti : term_infos)
   {
