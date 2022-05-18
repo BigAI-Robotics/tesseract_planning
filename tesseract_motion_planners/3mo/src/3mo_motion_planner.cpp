@@ -237,7 +237,6 @@ CompositeInstruction MMMOMotionPlanner::processCompositeInstruction(const Compos
                                                                      next_instruction,
                                                                      request,
                                                                      request.instructions.getManipulatorInfo());
-      seed.print("test 3mo seed");
       seed.push_back(instruction_seed);
 
       prev_instruction = base_instruction;
