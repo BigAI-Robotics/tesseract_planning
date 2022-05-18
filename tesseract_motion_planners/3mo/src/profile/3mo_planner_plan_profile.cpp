@@ -59,7 +59,6 @@ MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int x,
   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
   , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
 {
-  
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& prev_instruction,
@@ -90,6 +89,14 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
                                                                      const KinematicGroupInstructionInfo& base,
                                                                      const PlannerRequest& request) const
 {
+  const Eigen::VectorXd& j1 = prev.extractJointPosition();
+  // calculate possible iks with heuristic
+  auto ik_result = getIKWithHeuristic(base, j1);
+  // get joint joint seed
+  KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
+  auto states = getJointJointSeed(j1, ik_result.at(0), request, kin_group);
+  std::cout << ik_result.at(0) << std::endl << j1 << std::endl;
+  return getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,

@@ -104,6 +104,7 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
   std::shared_ptr<trajopt::ProblemConstructionInfo> pci;
   if (request.data)
   {
+    // CONSOLE_BRIDGE_logInform("casting request data");
     pci = std::static_pointer_cast<trajopt::ProblemConstructionInfo>(request.data);
   }
   else
@@ -122,6 +123,8 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
 
     response.data = pci;
   }
+
+  CONSOLE_BRIDGE_logInform("pci create success");
 
   // Construct Problem
   trajopt::TrajOptProb::Ptr problem = trajopt::ConstructProblem(*pci);
@@ -586,6 +589,7 @@ TrajOptMotionPlanner::createProblem(const PlannerRequest& request) const
         // added for mixed waypoint
         else if (isMixedWaypoint(plan_instruction.getWaypoint()))
         {
+          CONSOLE_BRIDGE_logInform("mixed waypoint processing...");
           const auto& mixed_wp = plan_instruction.getWaypoint().as<MixedWaypoint>();
           for (std::size_t s = 0; s < seed_composite.size() - 1; ++s)
             ++index;
