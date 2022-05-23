@@ -54,6 +54,11 @@ void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link
   link_targets[link_name] = link_tf;
 }
 
+void MixedWaypoint::addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf)
+{
+  link_constraints[link_name] = link_tf;
+}
+
 bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const { return true; }
 bool MixedWaypoint::operator!=(const MixedWaypoint& /*rhs*/) const { return false; }
 

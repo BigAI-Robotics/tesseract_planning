@@ -17,7 +17,6 @@ namespace tesseract_planning
 class MixedWaypoint
 {
 public:
-
   MixedWaypoint() = default;
 
   void print(const std::string& prefix = "") const;
@@ -37,9 +36,12 @@ public:
   std::map<std::string, double> joint_targets;
   // target link name and pose
   std::map<std::string, Eigen::Isometry3d> link_targets;
+  std::map<std::string, Eigen::Isometry3d> link_constraints;
 
   void addJointTarget(std::string joint_name, double joint_value);
   void addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf);
+
+  void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf);
 
   // not in use(formerly for generating term info, now deprecated)
   // JointWaypoint extractJointWaypoint() const;

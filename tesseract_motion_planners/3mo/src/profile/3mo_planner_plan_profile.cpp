@@ -95,7 +95,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   // get joint joint seed
   KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
   auto states = getJointJointSeed(j1, ik_result.at(0), request, kin_group);
-  std::cout << ik_result.at(0) << std::endl << j1 << std::endl;
+  // std::cout << ik_result.at(0) << std::endl << j1 << std::endl;
   return getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
 }
 

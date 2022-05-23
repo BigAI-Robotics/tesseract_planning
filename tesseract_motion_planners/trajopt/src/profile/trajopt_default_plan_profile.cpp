@@ -190,11 +190,29 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
                                       const Instruction& parent_instruction,
                                       const ManipulatorInfo& manip_info,
                                       const std::vector<std::string>& /*active_links*/,
-                                      int index) const
+                                      int index,
+                                      bool is_target) const
 {
   std::vector<trajopt::TermInfo::Ptr> term_infos;
-  // CONSOLE_BRIDGE_logInform("applying trajopt plan profile to mixed waypoint");
+  CONSOLE_BRIDGE_logInform("applying trajopt plan profile to mixed waypoint for index %d", index);
   size_t joint_num = mixed_waypoint.joint_names.size();
+  assert(isPlanInstruction(parent_instruction));
+  const auto& base_instruction = parent_instruction.as<PlanInstruction>();
+  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
+  ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  Eigen::Isometry3d tcp_offset = pci.env->findTCPOffset(mi);
+
+  if (!is_target)
+  {
+    for (auto t : mixed_waypoint.link_constraints)
+    {
+      auto ti_cartesian = createCartesianWaypointTermInfo(
+          index, mi.working_frame, t.second, t.first, tcp_offset, cartesian_coeff, trajopt::TermType::TT_CNT);
+      pci.cnt_infos.push_back(ti_cartesian);
+    }
+    return;
+  }
+
   // generate waypoint and coeff from target joint values
   Eigen::VectorXd adjusted_joint_coeff = Eigen::VectorXd::Zero(joint_num);
   JointWaypoint joint_waypoint(mixed_waypoint.joint_names, Eigen::VectorXd::Zero(joint_num));
@@ -206,16 +224,12 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
       throw std::logic_error("cannot find target joint name");
     }
     int idx = std::distance(mixed_waypoint.joint_names.begin(), it);
-    adjusted_joint_coeff(idx) = joint_coeff.size() == adjusted_joint_coeff.size() ? joint_coeff(idx) : joint_coeff(0); // fixed joint coeff size
+    adjusted_joint_coeff(idx) = joint_coeff.size() == adjusted_joint_coeff.size() ?
+                                    joint_coeff(idx) :
+                                    joint_coeff(0);  // fixed joint coeff size
     joint_waypoint(idx) = t.second;
   }
 
-  assert(isPlanInstruction(parent_instruction));
-  const auto& base_instruction = parent_instruction.as<PlanInstruction>();
-  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
-  Eigen::Isometry3d tcp_offset = pci.env->findTCPOffset(mi);
-  
   // CONSOLE_BRIDGE_logDebug("creating joint and cartesian terms");
 
   auto ti_joint = createJointWaypointTermInfo(joint_waypoint, index, adjusted_joint_coeff, term_type);
@@ -229,7 +243,6 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
         index, mi.working_frame, t.second, t.first, tcp_offset, cartesian_coeff, term_type);
     term_infos.push_back(ti_cartesian);
   }
-
 
   for (auto ti : term_infos)
   {

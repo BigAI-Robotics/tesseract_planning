@@ -79,7 +79,8 @@ public:
                      const Instruction& parent_instruction,
                      const ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
-                     int index) const = 0;
+                     int index,
+                     bool is_target = true) const = 0;
 
   virtual tinyxml2::XMLElement* toXML(tinyxml2::XMLDocument& doc) const = 0;
 };

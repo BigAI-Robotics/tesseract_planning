@@ -592,7 +592,10 @@ TrajOptMotionPlanner::createProblem(const PlannerRequest& request) const
           CONSOLE_BRIDGE_logInform("mixed waypoint processing...");
           const auto& mixed_wp = plan_instruction.getWaypoint().as<MixedWaypoint>();
           for (std::size_t s = 0; s < seed_composite.size() - 1; ++s)
+          {
+            cur_plan_profile->apply(*pci, mixed_wp, plan_instruction, composite_mi, active_links, index, false);
             ++index;
+          }
 
           cur_plan_profile->apply(*pci, mixed_wp, plan_instruction, composite_mi, active_links, index);
         }

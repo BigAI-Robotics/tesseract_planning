@@ -102,7 +102,8 @@ public:
              const Instruction& parent_instruction,
              const ManipulatorInfo& manip_info,
              const std::vector<std::string>& active_links,
-             int index) const override;
+             int index,
+             bool is_target = true) const override;
 
   tinyxml2::XMLElement* toXML(tinyxml2::XMLDocument& doc) const override;
 
