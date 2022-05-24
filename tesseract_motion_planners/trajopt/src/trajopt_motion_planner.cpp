@@ -598,6 +598,7 @@ TrajOptMotionPlanner::createProblem(const PlannerRequest& request) const
           }
 
           cur_plan_profile->apply(*pci, mixed_wp, plan_instruction, composite_mi, active_links, index);
+          CONSOLE_BRIDGE_logInform("mixed waypoint process success");
         }
         else
         {

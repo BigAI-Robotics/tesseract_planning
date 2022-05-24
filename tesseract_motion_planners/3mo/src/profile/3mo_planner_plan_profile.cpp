@@ -33,18 +33,18 @@ using namespace tesseract_kinematics;
 
 namespace tesseract_planning
 {
-MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(MapInfo& map,
-                                               int min_steps,
-                                               double state_longest_valid_segment_length,
-                                               double translation_longest_valid_segment_length,
-                                               double rotation_longest_valid_segment_length)
-  : map_(MapInfo(map.map_x, map.map_y, map.step_size))
-  , state_longest_valid_segment_length(state_longest_valid_segment_length)
-  , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
-  , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
-  , min_steps(min_steps)
-{
-}
+// MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(MapInfo& map,
+//                                                int min_steps,
+//                                                double state_longest_valid_segment_length,
+//                                                double translation_longest_valid_segment_length,
+//                                                double rotation_longest_valid_segment_length)
+//   : map_(MapInfo(map.map_x, map.map_y, map.step_size))
+//   , state_longest_valid_segment_length(state_longest_valid_segment_length)
+//   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
+//   , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
+//   , min_steps(min_steps)
+// {
+// }
 
 MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int x,
                                                int y,
@@ -59,6 +59,7 @@ MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int x,
   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
   , rotation_longest_valid_segment_length(rotation_longest_valid_segment_length)
 {
+  // std::cout << "map step size:" << map_.step_size << std::endl;
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& prev_instruction,
@@ -95,7 +96,10 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   // get joint joint seed
   KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
   auto states = getJointJointSeed(j1, ik_result.at(0), request, kin_group);
-  // std::cout << ik_result.at(0) << std::endl << j1 << std::endl;
+  // std::cout << "target joints: " << std::endl
+  //           << ik_result.at(0) << std::endl
+  //           << "start joints: " << std::endl
+  //           << j1 << std::endl;
   return getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
 }
 
@@ -146,6 +150,7 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
     std::vector<Eigen::Isometry3d>& base_poses,
     int n_steps) const
 {
+  // std::cout << "map step size: " << map_.step_size << std::endl;
   tesseract_collision::ContactResultMap contact_results;
   // init base trajectory
   Eigen::Isometry3d base_start_pose;
@@ -178,6 +183,9 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   astar_generator.setWorldSize({ map_.grid_size_x, map_.grid_size_y });
   astar_generator.setHeuristic(AStar::Heuristic::euclidean);
   astar_generator.setDiagonalMovement(true);
+
+  CONSOLE_BRIDGE_logDebug("map info: %d, %d, stepsize: %f", map_.grid_size_x, map_.grid_size_y, map_.step_size);
+  CONSOLE_BRIDGE_logDebug("S/G info: %d, %d / %d, %d", base_x, base_y, end_x, end_y);
 
   // add collisions
   for (int x = 0; x < map_.grid_size_x; ++x)
@@ -227,6 +235,12 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   }
   std::reverse(base_poses_raw.begin(), base_poses_raw.end());
 
+  // CONSOLE_BRIDGE_logDebug("base poses generated: \n");
+  // for (auto& pose : base_poses_raw)
+  // {
+  //   std::cout << pose.translation() << std::endl;
+  // }
+
   // interpolate
   std::vector<double> nsteps_remap;
   for (int i = 0; i < n_steps; ++i)
@@ -255,7 +269,12 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
     pose.translation()[0] = base_poses_raw[idx_1].translation()[0] + grad_x * rem * waypoints_len;
     pose.translation()[1] = base_poses_raw[idx_1].translation()[1] + grad_y * rem * waypoints_len;
     if (std::isnan(pose.translation()[0]) || std::isnan(pose.translation()[1]))
-      pose = base_poses.back();
+    {
+      pose.translation()[0] = base_poses.back().translation()[0];
+      pose.translation()[1] = base_poses.back().translation()[1];
+      CONSOLE_BRIDGE_logWarn("nan pose found at step %d", i);
+      std::cout << pose.translation() << std::endl;
+    }
     base_poses.push_back(pose);
   }
   return;

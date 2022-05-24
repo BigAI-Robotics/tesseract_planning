@@ -71,11 +71,11 @@ public:
    * @param rotation_longest_valid_segment_length The maximum rotational distance between successive steps
    * @param min_steps The minimum number of steps for the plan
    */
-  MMMOPlannerPlanProfile(MapInfo& map,
-                         int min_steps = 30,
-                         double state_longest_valid_segment_length = 5 * M_PI / 180,
-                         double translation_longest_valid_segment_length = 0.1,
-                         double rotation_longest_valid_segment_length = 5 * M_PI / 180);
+  // MMMOPlannerPlanProfile(MapInfo& map,
+  //                        int min_steps = 30,
+  //                        double state_longest_valid_segment_length = 5 * M_PI / 180,
+  //                        double translation_longest_valid_segment_length = 0.1,
+  //                        double rotation_longest_valid_segment_length = 5 * M_PI / 180);
 
   MMMOPlannerPlanProfile(int x = 12,
                          int y = 12,
@@ -108,8 +108,8 @@ public:
 
 protected:
   CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
-                                              const KinematicGroupInstructionInfo& base,
-                                              const PlannerRequest& request) const;
+                                               const KinematicGroupInstructionInfo& base,
+                                               const PlannerRequest& request) const;
 
   /**
    * @brief JointWaypoint to JointWaypoint

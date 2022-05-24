@@ -216,7 +216,10 @@ CompositeInstruction MMMOMotionPlanner::processCompositeInstruction(const Compos
       {
         std::string profile = getProfileString(name_, base_instruction.getProfile(), request.plan_profile_remapping);
         plan_profile = getProfile<MMMOPlannerPlanProfile>(
-            name_, profile, *request.profiles, std::make_shared<MMMOPlannerPlanProfile>(default_map));
+            name_,
+            profile,
+            *request.profiles,
+            std::make_shared<MMMOPlannerPlanProfile>(default_map.map_x, default_map.map_y, default_map.step_size));
         plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
       }
       else
@@ -224,7 +227,10 @@ CompositeInstruction MMMOMotionPlanner::processCompositeInstruction(const Compos
         std::string profile =
             getProfileString(name_, base_instruction.getPathProfile(), request.plan_profile_remapping);
         plan_profile = getProfile<MMMOPlannerPlanProfile>(
-            name_, profile, *request.profiles, std::make_shared<MMMOPlannerPlanProfile>(default_map));
+            name_,
+            profile,
+            *request.profiles,
+            std::make_shared<MMMOPlannerPlanProfile>(default_map.map_x, default_map.map_y, default_map.step_size));
         plan_profile = applyProfileOverrides(name_, profile, plan_profile, base_instruction.profile_overrides);
       }
 
