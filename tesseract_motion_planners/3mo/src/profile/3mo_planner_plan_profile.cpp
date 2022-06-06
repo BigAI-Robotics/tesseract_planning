@@ -245,7 +245,7 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   std::vector<double> nsteps_remap;
   for (int i = 0; i < n_steps; ++i)
   {
-    nsteps_remap.push_back(i / 1.0 / (n_steps - 1) * ((double)base_poses.size() - 1));
+    nsteps_remap.push_back(i / 1.0 / (n_steps - 1) * (base_poses_raw.size() - 1));
   }
 
   for (size_t i = 0; i < n_steps; ++i)
@@ -275,6 +275,8 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
       CONSOLE_BRIDGE_logWarn("nan pose found at step %d", i);
       std::cout << pose.translation() << std::endl;
     }
+    // CONSOLE_BRIDGE_logDebug("interpolated pose translation: ");
+    // std::cout << pose.translation() << std::endl;
     base_poses.push_back(pose);
   }
   return;

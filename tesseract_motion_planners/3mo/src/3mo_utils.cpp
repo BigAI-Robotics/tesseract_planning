@@ -27,6 +27,7 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
 tesseract_kinematics::IKSolutions getIKWithHeuristic(const KinematicGroupInstructionInfo& info,
                                                      const Eigen::VectorXd& seed)
 {
+  CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint");
   auto limits = info.manip->getLimits();
   auto redundancy_indices = info.manip->getRedundancyCapableJointIndices();
   if (!info.has_mixed_waypoint)
