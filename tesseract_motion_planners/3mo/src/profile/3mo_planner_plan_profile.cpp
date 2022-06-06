@@ -268,7 +268,7 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
 
     pose.translation()[0] = base_poses_raw[idx_1].translation()[0] + grad_x * rem * waypoints_len;
     pose.translation()[1] = base_poses_raw[idx_1].translation()[1] + grad_y * rem * waypoints_len;
-    if (std::isnan(pose.translation()[0]) || std::isnan(pose.translation()[1]))
+    if (std::isnan(pose.translation()[0]) || std::isnan(pose.translation()[1]) || idx_2 > base_poses_raw.size())
     {
       pose.translation()[0] = base_poses.back().translation()[0];
       pose.translation()[1] = base_poses.back().translation()[1];
