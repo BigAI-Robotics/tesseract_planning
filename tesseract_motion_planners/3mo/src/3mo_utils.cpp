@@ -24,48 +24,48 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
 }
 
 // seed here is the initial joint pose, not actual seed used for kinematics.
-tesseract_kinematics::IKSolutions getIKWithHeuristic(const KinematicGroupInstructionInfo& info,
-                                                     const Eigen::VectorXd& seed)
+tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                                     const MixedWaypoint& waypoint,
+                                                     const std::string working_frame,
+                                                     const Eigen::VectorXd& prev_joints)
 {
   CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint");
-  auto limits = info.manip->getLimits();
-  auto redundancy_indices = info.manip->getRedundancyCapableJointIndices();
-  if (!info.has_mixed_waypoint)
-  {
-    throw std::runtime_error("Instruction waypoint need to have a mixed waypoint.");
-  }
-  MixedWaypoint wp = info.instruction.getWaypoint().as<MixedWaypoint>();
+  auto limits = manip->getLimits();
+  auto redundancy_indices = manip->getRedundancyCapableJointIndices();
+  // if (!info.has_mixed_waypoint)
+  // {
+  //   throw std::runtime_error("Instruction waypoint need to have a mixed waypoint.");
+  // }
+  // MixedWaypoint wp = info.instruction.getWaypoint().as<MixedWaypoint>();
 
   // ik_with_cost_queue is reversed when inserting elements(larger cost will be poped first)
   std::priority_queue<IKWithCost> ik_with_cost_queue;
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
-  for (auto link_target : wp.link_targets)
+  for (auto link_target : waypoint.link_targets)
   {
-    ik_inputs.push_back(
-        tesseract_kinematics::KinGroupIKInput(link_target.second, info.working_frame, link_target.first));
+    ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
   int retry = 0;
   while (ik_with_cost_queue.size() < 1000)
   {
     Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
-    tesseract_kinematics::IKSolutions result = info.manip->calcInvKin(ik_inputs, ik_seed);
+    tesseract_kinematics::IKSolutions result = manip->calcInvKin(ik_inputs, ik_seed);
     for (const auto& res : result)
     {
-      ik_with_cost_queue.emplace(res, getIKCost(wp, res, seed));
+      int cost = getIKCost(waypoint, res, prev_joints);
+      if (cost > 0)
+        ik_with_cost_queue.emplace(res, cost);
+
       auto redundant_solutions =
           tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
       for (const auto& redundant_sol : redundant_solutions)
       {
-        ik_with_cost_queue.emplace(redundant_sol, getIKCost(wp, redundant_sol, seed));
+        cost = getIKCost(waypoint, redundant_sol, prev_joints);
+        if (cost > 0)
+          ik_with_cost_queue.emplace(redundant_sol, cost);
       }
     }
-    // for (const auto& res : result)
-    // {
-    //   sol.push_back(res);
-    //   auto redundant_solutions =
-    //       tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
-    //   sol.insert(sol.end(), redundant_solutions.begin(), redundant_solutions.end());
-    // }
+
     if (ik_with_cost_queue.empty())
     {
       retry++;
@@ -89,14 +89,52 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(const KinematicGroupInstruc
 double getIKCost(const MixedWaypoint& wp, const Eigen::VectorXd& target, const Eigen::VectorXd& base)
 {
   double cost = 0;
-  cost += (target - base).array().abs().sum();
+  cost += (target - base).array().abs().sum() * 2;
   for (auto const& joint_target : wp.joint_targets)
   {
     auto itr = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint_target.first);
     int index = std::distance(wp.joint_names.begin(), itr);
-    cost += std::pow(std::abs(target[index] - joint_target.second), 1) * 20;
+    const int diff = std::abs(target[index] - joint_target.second);
+    if (diff > 0.2)
+    {
+      return -1;
+    }
+    cost += std::pow(diff, 1) * 7;
   }
-  return cost;
+  return std::abs(cost);
+}
+
+tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment::Environment::ConstPtr env,
+                                                    tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                                                    tesseract_kinematics::IKSolutions ik_input)
+{
+  tesseract_kinematics::IKSolutions result;
+  // check collision
+  tesseract_collision::ContactResultMap contact_result;
+  tesseract_collision::DiscreteContactManager::Ptr contact_manager = env->getDiscreteContactManager()->clone();
+  size_t best_collision_count = 1000;
+  Eigen::VectorXd best_solution = ik_input.at(0);
+  for (auto const& ik : ik_input)
+  {
+    contact_result.clear();
+    auto current_state = env->getState(kin_group->getJointNames(), ik);
+    contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
+    contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
+    if (contact_result.size() <= best_collision_count)
+    {
+      best_collision_count = contact_result.size();
+      best_solution = ik;
+      if (contact_result.size() == 0)
+      {
+        result.push_back(ik);
+      }
+    }
+  }
+
+  if (result.empty())
+    result.push_back(best_solution);
+
+  return result;
 }
 
 }  // namespace tesseract_planning

@@ -90,17 +90,28 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
                                                                      const KinematicGroupInstructionInfo& base,
                                                                      const PlannerRequest& request) const
 {
-  const Eigen::VectorXd& j1 = prev.extractJointPosition();
+  const Eigen::VectorXd j1 = prev.extractJointPosition();
   // calculate possible iks with heuristic
-  auto ik_result = getIKWithHeuristic(base, j1);
+  tesseract_kinematics::KinematicGroup::Ptr kin_group =
+      std::move(request.env->getKinematicGroup(prev.manip->getName()));
+  MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
+  auto ik_result = getIKWithHeuristic(kin_group, wp, base.working_frame, j1);
+
+  auto filtered_ik_result = filterCollisionIK(request.env, kin_group, ik_result);
+
+  std::cout << "total solutions: " << filtered_ik_result.size() << std::endl
+            << "best sol: " << filtered_ik_result.at(0).transpose() << std::endl;
+
   // get joint joint seed
-  KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
-  auto states = getJointJointSeed(j1, ik_result.at(0), request, kin_group);
+  auto states = getJointJointSeed(j1, filtered_ik_result.at(0), request, kin_group);
   // std::cout << "target joints: " << std::endl
   //           << ik_result.at(0) << std::endl
   //           << "start joints: " << std::endl
   //           << j1 << std::endl;
-  return getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
+  CompositeInstruction interpolated_composite =
+      getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
+
+  return interpolated_composite;
 }
 
 CompositeInstruction MMMOPlannerPlanProfile::stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
