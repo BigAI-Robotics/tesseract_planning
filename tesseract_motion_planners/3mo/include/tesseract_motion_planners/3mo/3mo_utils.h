@@ -20,14 +20,16 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
                  Eigen::Isometry3d& tf,
                  tesseract_collision::ContactResultMap& contact_results);
 
-tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                                     const MixedWaypoint& waypoint,
-                                                     const std::string working_frame,
-                                                     const Eigen::VectorXd& prev_joints);
+tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                                 const MixedWaypoint& waypoint,
+                                                 const std::string working_frame,
+                                                 const Eigen::VectorXd& prev_joints,
+                                                 const Eigen::VectorXd& cost_coeff = Eigen::VectorXd());
 
 double getIKCost(const tesseract_planning::MixedWaypoint& wp,
                  const Eigen::VectorXd& target,
-                 const Eigen::VectorXd& base);
+                 const Eigen::VectorXd& base,
+                 const Eigen::VectorXd& cost_coeff);
 
 tesseract_kinematics::IKSolutions filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,

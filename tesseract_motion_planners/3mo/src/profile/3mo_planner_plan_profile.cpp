@@ -95,7 +95,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   tesseract_kinematics::KinematicGroup::Ptr kin_group =
       std::move(request.env->getKinematicGroup(prev.manip->getName()));
   MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
-  auto ik_result = getIKWithHeuristic(kin_group, wp, base.working_frame, j1);
+  auto ik_result = getIKWithOrder(kin_group, wp, base.working_frame, j1);
 
   auto filtered_ik_result = filterCollisionIK(request.env, kin_group, ik_result);
 

@@ -24,14 +24,25 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
 }
 
 // seed here is the initial joint pose, not actual seed used for kinematics.
-tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                                     const MixedWaypoint& waypoint,
-                                                     const std::string working_frame,
-                                                     const Eigen::VectorXd& prev_joints)
+tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                                 const MixedWaypoint& waypoint,
+                                                 const std::string working_frame,
+                                                 const Eigen::VectorXd& prev_joints,
+                                                 const Eigen::VectorXd& cost_coefficient_input)
 {
   CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint");
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
+  Eigen::VectorXd cost_coeff;
+  if (cost_coefficient_input.size())
+  {
+    assert(cost_coefficient_input.size() == prev_joints.size());
+    cost_coeff = cost_coefficient_input;
+  }
+  else
+  {
+    cost_coeff.setOnes(prev_joints.size());
+  }
   // if (!info.has_mixed_waypoint)
   // {
   //   throw std::runtime_error("Instruction waypoint need to have a mixed waypoint.");
@@ -52,7 +63,7 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
     tesseract_kinematics::IKSolutions result = manip->calcInvKin(ik_inputs, ik_seed);
     for (const auto& res : result)
     {
-      double cost = getIKCost(waypoint, res, prev_joints);
+      double cost = getIKCost(waypoint, res, prev_joints, cost_coeff);
       if (cost > 0)
         ik_with_cost_queue.emplace(res, cost);
 
@@ -60,7 +71,7 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
           tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
       for (const auto& redundant_sol : redundant_solutions)
       {
-        cost = getIKCost(waypoint, redundant_sol, prev_joints);
+        cost = getIKCost(waypoint, redundant_sol, prev_joints, cost_coeff);
         if (cost > 0)
           ik_with_cost_queue.emplace(redundant_sol, cost);
       }
@@ -87,10 +98,14 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
   // get more than 1000 ik solutions
 }
 
-double getIKCost(const MixedWaypoint& wp, const Eigen::VectorXd& target, const Eigen::VectorXd& base)
+double getIKCost(const MixedWaypoint& wp,
+                 const Eigen::VectorXd& target,
+                 const Eigen::VectorXd& base,
+                 const Eigen::VectorXd& cost_coefficient)
 {
+  assert(target.size() == base.size() && target.size() == cost_coefficient.size());
   double cost = 0;
-  cost += (target - base).array().abs().sum() * 2;
+  cost += (target - base).cwiseProduct(cost_coefficient).array().abs().sum() * 2;
   for (auto const& joint_target : wp.joint_targets)
   {
     // std::cout << "joint target: " << joint_target.first << " " << joint_target.second << std::endl;
