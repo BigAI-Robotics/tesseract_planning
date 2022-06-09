@@ -39,7 +39,7 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
   // MixedWaypoint wp = info.instruction.getWaypoint().as<MixedWaypoint>();
 
   // ik_with_cost_queue is reversed when inserting elements(larger cost will be poped first)
-  std::priority_queue<IKWithCost> ik_with_cost_queue;
+  std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> ik_with_cost_queue;
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
   for (auto link_target : waypoint.link_targets)
   {
@@ -52,7 +52,7 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
     tesseract_kinematics::IKSolutions result = manip->calcInvKin(ik_inputs, ik_seed);
     for (const auto& res : result)
     {
-      int cost = getIKCost(waypoint, res, prev_joints);
+      double cost = getIKCost(waypoint, res, prev_joints);
       if (cost > 0)
         ik_with_cost_queue.emplace(res, cost);
 
@@ -73,12 +73,13 @@ tesseract_kinematics::IKSolutions getIKWithHeuristic(tesseract_kinematics::Kinem
         throw std::runtime_error("cannot find valid ik solution");
     }
   }
+  CONSOLE_BRIDGE_logDebug("best ik cost: %f", ik_with_cost_queue.top().cost);
   // reverse the ik with cost queue and return
   tesseract_kinematics::IKSolutions solutions;
   while (ik_with_cost_queue.size() > 0)
   {
-    solutions.insert(solutions.begin(), ik_with_cost_queue.top().ik);
-    // solutions.push_back(ik_with_cost_queue.top().ik);
+    // solutions.insert(solutions.begin(), ik_with_cost_queue.top().ik);
+    solutions.push_back(ik_with_cost_queue.top().ik);
     ik_with_cost_queue.pop();
   }
   return solutions;
@@ -92,12 +93,15 @@ double getIKCost(const MixedWaypoint& wp, const Eigen::VectorXd& target, const E
   cost += (target - base).array().abs().sum() * 2;
   for (auto const& joint_target : wp.joint_targets)
   {
+    // std::cout << "joint target: " << joint_target.first << " " << joint_target.second << std::endl;
     auto itr = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint_target.first);
     int index = std::distance(wp.joint_names.begin(), itr);
-    const int diff = std::abs(target[index] - joint_target.second);
+    // std::cout << "index found: " << index << std::endl;
+    const double diff = std::abs(target[index] - joint_target.second);
     if (diff > 0.2)
     {
-      return -1;
+      // std::cout << "diff: " << target[index] << " " << diff << std::endl;
+      return -1.0;
     }
     cost += std::pow(diff, 1) * 7;
   }

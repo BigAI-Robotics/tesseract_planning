@@ -104,7 +104,7 @@ public:
   double rotation_longest_valid_segment_length;
 
   /** @brief The minimum number of steps for the plan */
-  int min_steps;
+  int min_steps = 0;
 
 protected:
   CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,

@@ -12,6 +12,7 @@ struct IKWithCost
   double cost;
   IKWithCost(Eigen::VectorXd ik, double cost) : ik{ std::move(ik) }, cost{ cost } {}
   friend bool operator<(IKWithCost const& ik1, IKWithCost const& ik2) { return ik1.cost < ik2.cost; }
+  friend bool operator>(IKWithCost const& ik1, IKWithCost const& ik2) { return ik1.cost > ik2.cost; }
 };
 
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
