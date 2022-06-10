@@ -90,6 +90,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
                                                                      const KinematicGroupInstructionInfo& base,
                                                                      const PlannerRequest& request) const
 {
+  CONSOLE_BRIDGE_logDebug("generating joint -> mixed waypoint composite instruction...");
   const Eigen::VectorXd j1 = prev.extractJointPosition();
   // calculate possible iks with heuristic
   tesseract_kinematics::KinematicGroup::Ptr kin_group =
@@ -119,6 +120,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointJointWaypoint(const Kinem
                                                                      const PlannerRequest& request) const
 {
   // trans dist, rot dist, joint dist is not in use for now
+  CONSOLE_BRIDGE_logDebug("generating joint -> joint waypoint composite instruction...");
   // get kin group
   auto joint_target = base.extractJointPosition();
   auto joint_start = prev.extractJointPosition();
