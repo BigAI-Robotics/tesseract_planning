@@ -50,7 +50,7 @@ struct MapInfo
   int grid_size_x;
   int grid_size_y;
 
-  MapInfo(int x = 12, int y = 12, double step = 0.5) : map_x(x), map_y(y), step_size(step)
+  MapInfo(int x = 15, int y = 15, double step = 0.4) : map_x(x), map_y(y), step_size(step)
   {
     grid_size_x = int(map_x / step_size) + 1;
     grid_size_y = int(map_y / step_size) + 1;
@@ -77,10 +77,7 @@ public:
   //                        double translation_longest_valid_segment_length = 0.1,
   //                        double rotation_longest_valid_segment_length = 5 * M_PI / 180);
 
-  MMMOPlannerPlanProfile(int x = 12,
-                         int y = 12,
-                         double res = 0.5,
-                         int min_steps = 30,
+  MMMOPlannerPlanProfile(int min_steps = 30,
                          double state_longest_valid_segment_length = 5 * M_PI / 180,
                          double translation_longest_valid_segment_length = 0.1,
                          double rotation_longest_valid_segment_length = 5 * M_PI / 180);
@@ -92,7 +89,11 @@ public:
                                 const PlannerRequest& request,
                                 const ManipulatorInfo& global_manip_info) const;
 
-  MapInfo map_;
+  void setMapInfo(int x, int y, double resolution) { map_ = MapInfo(x, y, resolution); }
+
+  void setBaseJoint(std::pair<std::string, std::string> base_joint) { base_joint_ = base_joint; }
+
+  void clearBaseJoint() { base_joint_ = std::make_pair("", ""); }
 
   /** @brief The maximum joint distance, the norm of changes to all joint positions between successive steps. */
   double state_longest_valid_segment_length;
@@ -211,6 +212,9 @@ protected:
                            const Eigen::VectorXd& joint_target,
                            std::vector<Eigen::Isometry3d>& base_poses,
                            int steps) const;
+
+  MapInfo map_;
+  std::pair<std::string, std::string> base_joint_;
 };
 
 }  // namespace tesseract_planning

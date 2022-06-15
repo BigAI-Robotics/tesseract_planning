@@ -46,14 +46,11 @@ namespace tesseract_planning
 // {
 // }
 
-MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int x,
-                                               int y,
-                                               double res,
-                                               int min_steps,
+MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int min_steps,
                                                double state_longest_valid_segment,
                                                double translation_longest_valid_segment_length,
                                                double rotation_longest_valid_segment_length)
-  : map_(MapInfo(x, y, res))
+  : map_(MapInfo(15, 15, 0.4))
   , min_steps(min_steps)
   , state_longest_valid_segment_length(state_longest_valid_segment)
   , translation_longest_valid_segment_length(translation_longest_valid_segment_length)
@@ -145,14 +142,29 @@ Eigen::MatrixXd MMMOPlannerPlanProfile::getJointJointSeed(const Eigen::VectorXd&
 
   std::vector<Eigen::Isometry3d> base_poses;
   int steps = min_steps;
-  initBaseTrajectory_(kin_group, discrete_contact_manager_, joint_start, joint_target, base_poses, steps);
   Eigen::MatrixXd states = interpolate(joint_start, joint_target, steps);
-  // set base pose from astar
-  for (int i = 1; i < steps; ++i)
+  if (!base_joint_.first.empty() && !base_joint_.second.empty())
   {
-    states(0, i) = base_poses[i].translation()[0];
-    states(1, i) = base_poses[i].translation()[1];
+    initBaseTrajectory_(kin_group, discrete_contact_manager_, joint_start, joint_target, base_poses, steps);
+    auto joint_names = kin_group->getJointNames();
+    auto find_result = std::find(joint_names.begin(), joint_names.end(), base_joint_.first);
+    assert(find_result != joint_names.end());
+    auto x_idx = find_result - joint_names.begin();
+    find_result = std::find(joint_names.begin(), joint_names.end(), base_joint_.second);
+    assert(find_result != joint_names.end());
+    auto y_idx = find_result - joint_names.begin();
+    // set base pose from astar
+    for (int i = 1; i < steps; ++i)
+    {
+      states(x_idx, i) = base_poses[i].translation()[0];
+      states(y_idx, i) = base_poses[i].translation()[1];
+    }
   }
+  else
+  {
+    CONSOLE_BRIDGE_logDebug("base joint does not exist, will not apply astar base trajectory initialization.");
+  }
+
   return states;
 }
 
