@@ -137,8 +137,9 @@ Eigen::MatrixXd MMMOPlannerPlanProfile::getJointJointSeed(const Eigen::VectorXd&
 {
   tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager_ =
       std::move(request.env->getDiscreteContactManager()->clone());
-  for (auto& active_link : discrete_contact_manager_->getActiveCollisionObjects())
+  for (auto& active_link : discrete_contact_manager_->getCollisionObjects())
   {
+    // std::cout << active_link << std::endl;
     discrete_contact_manager_->enableCollisionObject(active_link);
   }
 
@@ -168,10 +169,10 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   // init base trajectory
   Eigen::Isometry3d base_start_pose;
   base_start_pose.setIdentity();
-  base_start_pose.translation() = Eigen::Vector3d(joint_start[0], joint_start[1], 0.13);
+  base_start_pose.translation() = Eigen::Vector3d(joint_start[0], joint_start[1], 0.145);
   Eigen::Isometry3d base_target_pose;
   base_target_pose.setIdentity();
-  base_target_pose.translation() = Eigen::Vector3d(joint_target[0], joint_target[1], 0.13);
+  base_target_pose.translation() = Eigen::Vector3d(joint_target[0], joint_target[1], 0.145);
 
   int base_x = int(round((base_start_pose.translation()[0] + map_.map_x / 2.0) / map_.step_size));
   int base_y = int(round((base_start_pose.translation()[1] + map_.map_y / 2.0) / map_.step_size));
@@ -181,16 +182,16 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   Eigen::Isometry3d base_tf;
   std::vector<std::string> link_names = kin_group->getLinkNames();
 
-  for (auto& link_name : link_names)
-  {
-    if (link_name != "base_link" && link_name != "world")
-    {
-      if (!discrete_contact_manager->removeCollisionObject(link_name))
-      {
-        // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
-      }
-    }
-  }
+  // for (auto& link_name : link_names)
+  // {
+  //   if (link_name != "base_link" && link_name != "world")
+  //   {
+  //     if (!discrete_contact_manager->removeCollisionObject(link_name))
+  //     {
+  //       // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
+  //     }
+  //   }
+  // }
 
   AStar::Generator astar_generator;
   astar_generator.setWorldSize({ map_.grid_size_x, map_.grid_size_y });
@@ -208,28 +209,28 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
       base_tf.setIdentity();
       contact_results.clear();
       base_tf.translation() =
-          Eigen::Vector3d(-map_.map_x / 2.0 + x * map_.step_size, -map_.map_y / 2.0 + y * map_.step_size, 0.13);
+          Eigen::Vector3d(-map_.map_x / 2.0 + x * map_.step_size, -map_.map_y / 2.0 + y * map_.step_size, 0.145);
       if (!isEmptyCell(discrete_contact_manager, "base_link", base_tf, contact_results) &&
           (!(x == base_x && y == base_y) && !(x == end_x && y == end_y)))
       {
-        // std::cout << "o";
+        std::cout << "o";
         // std::cout << x << ":\t" << y << std::endl;
         astar_generator.addCollision({ x, y });
       }
       else if (x == base_x && y == base_y)
       {
-        // std::cout << "S";
+        std::cout << "S";
       }
       else if (x == end_x && y == end_y)
       {
-        // std::cout << "G";
+        std::cout << "G";
       }
       else
       {
-        // std::cout << "+";
+        std::cout << "+";
       }
     }
-    // std::cout << "" << std::endl;
+    std::cout << "" << std::endl;
   }
 
   // generate path
