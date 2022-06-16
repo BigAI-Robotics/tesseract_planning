@@ -192,18 +192,18 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   int end_x = int(round((base_target_pose.translation()[0] + map_.map_x / 2.0) / map_.step_size));
   int end_y = int(round((base_target_pose.translation()[1] + map_.map_y / 2.0) / map_.step_size));
   Eigen::Isometry3d base_tf;
-  std::vector<std::string> link_names = kin_group->getLinkNames();
+  std::vector<std::string> link_names = kin_group->getActiveLinkNames();
 
-  // for (auto& link_name : link_names)
-  // {
-  //   if (link_name != "base_link" && link_name != "world")
-  //   {
-  //     if (!discrete_contact_manager->removeCollisionObject(link_name))
-  //     {
-  //       // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
-  //     }
-  //   }
-  // }
+  for (auto& link_name : link_names)
+  {
+    if (link_name != "base_link" && link_name != "world")
+    {
+      if (!discrete_contact_manager->removeCollisionObject(link_name))
+      {
+        // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
+      }
+    }
+  }
 
   AStar::Generator astar_generator;
   astar_generator.setWorldSize({ map_.grid_size_x, map_.grid_size_y });
