@@ -60,6 +60,7 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   while (ik_with_cost_queue.size() < 200)
   {
     Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+    // std::cout << ik_seed.transpose() << std::endl;
     tesseract_kinematics::IKSolutions result = manip->calcInvKin(ik_inputs, ik_seed);
     for (const auto& res : result)
     {

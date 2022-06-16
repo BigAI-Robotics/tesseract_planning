@@ -93,19 +93,37 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   tesseract_kinematics::KinematicGroup::Ptr kin_group =
       std::move(request.env->getKinematicGroup(prev.manip->getName()));
   MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
-  auto ik_result = getIKWithOrder(kin_group, wp, base.working_frame, j1);
 
-  auto filtered_ik_result = filterCollisionIK(request.env, kin_group, ik_result);
+  Eigen::VectorXd joint_target;
 
-  std::cout << "total solutions: " << filtered_ik_result.size() << std::endl
-            << "best sol: " << filtered_ik_result.at(0).transpose() << std::endl;
-
+  if (wp.link_targets.empty())
+  {
+    // cartesian waypoint not specified, no need to calculate ik
+    CONSOLE_BRIDGE_logDebug("no cartesian target specified in mixed waypoint, will not calculate ik");
+    joint_target = j1;
+    for (auto& joint : wp.joint_targets)
+    {
+      auto joint_idx = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint.first);
+      if (joint_idx == wp.joint_names.end())
+      {
+        CONSOLE_BRIDGE_logError("joint target name: %s not found.", joint.first);
+        throw std::runtime_error("joint target name not found in joints");
+      }
+      joint_target[joint_idx - wp.joint_names.begin()] = joint.second;
+    }
+    std::cout << "joint state target: " << joint_target.transpose() << std::endl;
+  }
+  else
+  {
+    // cartesian waypoint specified
+    auto ik_result = getIKWithOrder(kin_group, wp, base.working_frame, j1);
+    auto filtered_ik_result = filterCollisionIK(request.env, kin_group, ik_result);
+    std::cout << "total solutions: " << filtered_ik_result.size() << std::endl
+              << "best sol: " << filtered_ik_result.at(0).transpose() << std::endl;
+    joint_target = filtered_ik_result.at(0);
+  }
   // get joint joint seed
-  auto states = getJointJointSeed(j1, filtered_ik_result.at(0), request, kin_group);
-  // std::cout << "target joints: " << std::endl
-  //           << ik_result.at(0) << std::endl
-  //           << "start joints: " << std::endl
-  //           << j1 << std::endl;
+  auto states = getJointJointSeed(j1, joint_target, request, kin_group);
   CompositeInstruction interpolated_composite =
       getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
 
