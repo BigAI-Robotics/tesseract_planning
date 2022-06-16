@@ -80,7 +80,7 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
     if (ik_with_cost_queue.empty())
     {
       retry++;
-      if (retry > 500)  // TODO: adjust the retry number
+      if (retry > 5000)  // TODO: adjust the retry number
         throw std::runtime_error("cannot find valid ik solution");
     }
   }
