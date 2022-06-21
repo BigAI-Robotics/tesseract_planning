@@ -148,12 +148,6 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
 
   // Optimize
   opt.optimize();
-  if (opt.results().status != sco::OptStatus::OPT_CONVERGED)
-  {
-    response.status =
-        tesseract_common::StatusCode(TrajOptMotionPlannerStatusCategory::FailedToFindValidSolution, status_category_);
-    return response.status;
-  }
 
   // Get the results
   tesseract_common::TrajArray trajectory = getTraj(opt.x(), problem->GetVars());
@@ -198,7 +192,15 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
     }
   }
 
-  response.status = tesseract_common::StatusCode(TrajOptMotionPlannerStatusCategory::SolutionFound, status_category_);
+  if (opt.results().status != sco::OptStatus::OPT_CONVERGED)
+  {
+    response.status =
+        tesseract_common::StatusCode(TrajOptMotionPlannerStatusCategory::FailedToFindValidSolution, status_category_);
+  }
+  else
+  {
+    response.status = tesseract_common::StatusCode(TrajOptMotionPlannerStatusCategory::SolutionFound, status_category_);
+  }
   return response.status;
 }
 
