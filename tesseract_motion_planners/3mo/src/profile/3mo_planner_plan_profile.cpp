@@ -243,24 +243,24 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
       if (!isEmptyCell(discrete_contact_manager, "base_link", base_tf, contact_results) &&
           (!(x == base_x && y == base_y) && !(x == end_x && y == end_y)))
       {
-        std::cout << "o";
+        // std::cout << "o";
         // std::cout << x << ":\t" << y << std::endl;
         astar_generator.addCollision({ x, y });
       }
       else if (x == base_x && y == base_y)
       {
-        std::cout << "S";
+        // std::cout << "S";
       }
       else if (x == end_x && y == end_y)
       {
-        std::cout << "G";
+        // std::cout << "G";
       }
       else
       {
-        std::cout << "+";
+        // std::cout << "+";
       }
     }
-    std::cout << "" << std::endl;
+    // std::cout << "" << std::endl;
   }
 
   // generate path

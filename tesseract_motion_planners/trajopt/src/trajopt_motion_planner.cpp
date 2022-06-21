@@ -192,7 +192,7 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
     }
   }
 
-  if (opt.results().status != sco::OptStatus::OPT_CONVERGED)
+  if (opt.results().status != sco::OptStatus::OPT_CONVERGED || opt.results().total_cost > 1e2)
   {
     response.status =
         tesseract_common::StatusCode(TrajOptMotionPlannerStatusCategory::FailedToFindValidSolution, status_category_);
