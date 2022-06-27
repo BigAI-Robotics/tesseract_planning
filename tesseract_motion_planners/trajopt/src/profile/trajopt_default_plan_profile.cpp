@@ -194,7 +194,7 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
                                       bool is_target) const
 {
   std::vector<trajopt::TermInfo::Ptr> term_infos;
-  CONSOLE_BRIDGE_logDebug("applying trajopt plan profile to mixed waypoint for index %d", index);
+  // CONSOLE_BRIDGE_logDebug("applying trajopt plan profile to mixed waypoint for index %d", index);
   size_t joint_num = mixed_waypoint.joint_names.size();
   assert(isPlanInstruction(parent_instruction));
   const auto& base_instruction = parent_instruction.as<PlanInstruction>();

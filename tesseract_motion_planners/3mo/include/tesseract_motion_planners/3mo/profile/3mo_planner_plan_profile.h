@@ -107,6 +107,8 @@ public:
   /** @brief The minimum number of steps for the plan */
   int min_steps = 0;
 
+  Eigen::VectorXd cost_coeff = Eigen::VectorXd();
+
 protected:
   CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
                                                const KinematicGroupInstructionInfo& base,
