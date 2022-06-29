@@ -89,6 +89,10 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
 {
   CONSOLE_BRIDGE_logDebug("generating joint -> mixed waypoint composite instruction...");
   const Eigen::VectorXd j1 = prev.extractJointPosition();
+  std::stringstream ss;
+  ss << j1.transpose();
+  CONSOLE_BRIDGE_logDebug("prev state: %s", ss.str().c_str());
+
   // calculate possible iks with heuristic
   tesseract_kinematics::KinematicGroup::Ptr kin_group =
       std::move(request.env->getKinematicGroup(prev.manip->getName()));

@@ -85,7 +85,9 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
         throw std::runtime_error("cannot find valid ik solution");
     }
   }
-  CONSOLE_BRIDGE_logDebug("best ik cost: %f", ik_with_cost_queue.top().cost);
+  std::stringstream buffer;
+  buffer << ik_with_cost_queue.top().ik.transpose();
+  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f", buffer.str().c_str(), ik_with_cost_queue.top().cost);
   // reverse the ik with cost queue and return
   tesseract_kinematics::IKSolutions solutions;
   while (ik_with_cost_queue.size() > 0)
