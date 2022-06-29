@@ -30,7 +30,9 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
                                                  const Eigen::VectorXd& prev_joints,
                                                  const Eigen::VectorXd& cost_coefficient_input)
 {
-  CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint");
+  std::stringstream ss;
+  ss << cost_coefficient_input.transpose();
+  CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
   Eigen::VectorXd cost_coeff;
@@ -41,6 +43,7 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   }
   else
   {
+    CONSOLE_BRIDGE_logDebug("no cost coeff found, setting cost coeffs with 1");
     cost_coeff.setOnes(prev_joints.size());
   }
   // if (!info.has_mixed_waypoint)

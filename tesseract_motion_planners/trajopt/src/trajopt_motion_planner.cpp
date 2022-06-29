@@ -124,7 +124,7 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
     response.data = pci;
   }
 
-  CONSOLE_BRIDGE_logInform("pci create success");
+  CONSOLE_BRIDGE_logDebug("pci create success");
 
   // Construct Problem
   trajopt::TrajOptProb::Ptr problem = trajopt::ConstructProblem(*pci);
@@ -146,6 +146,7 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
     opt.addCallback(callback);
   }
 
+  CONSOLE_BRIDGE_logInform("optimizing, please wait...");
   // Optimize
   opt.optimize();
 
