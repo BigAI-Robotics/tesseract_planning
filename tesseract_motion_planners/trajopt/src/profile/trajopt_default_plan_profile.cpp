@@ -257,6 +257,10 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
 
 void TrajOptDefaultPlanProfile::addConstraintErrorFunctions(trajopt::ProblemConstructionInfo& pci, int index) const
 {
+  if (fixed_dofs.size())
+  {
+    pci.basic_info.fixed_dofs = fixed_dofs;
+  }
   for (const auto& c : constraint_error_functions)
   {
     trajopt::TermInfo::Ptr ti =

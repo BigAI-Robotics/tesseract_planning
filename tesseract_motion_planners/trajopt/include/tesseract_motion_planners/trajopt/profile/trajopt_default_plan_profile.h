@@ -61,6 +61,7 @@ public:
   Eigen::VectorXd cartesian_coeff{ Eigen::VectorXd::Constant(1, 1, 5) };
   Eigen::VectorXd joint_coeff{ Eigen::VectorXd::Constant(1, 1, 5) };
   trajopt::TermType term_type{ trajopt::TermType::TT_CNT };
+  std::vector<int> fixed_dofs;
 
   /** @brief Error function that is set as a constraint for each timestep.
    *
