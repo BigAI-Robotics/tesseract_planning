@@ -1,30 +1,5 @@
-/**
- * @file ompl_default_plan_profile.h
- * @brief Tesseract OMPL default plan profile
- *
- * @author Levi Armstrong
- * @date June 18, 2020
- * @version TODO
- * @bug No known bugs
- *
- * @copyright Copyright (c) 2020, Southwest Research Institute
- *
- * @par License
- * Software License Agreement (Apache License)
- * @par
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * @par
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-#ifndef TESSERACT_MOTION_PLANNERS_OMPL_OMPL_DEFAULT_PLAN_PROFILE_H
-#define TESSERACT_MOTION_PLANNERS_OMPL_OMPL_DEFAULT_PLAN_PROFILE_H
+#ifndef TESSERACT_MOTION_PLANNERS_OMPL_OMPL_CONSTRAINED_PLAN_PROFILE_H
+#define TESSERACT_MOTION_PLANNERS_OMPL_OMPL_CONSTRAINED_PLAN_PROFILE_H
 
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
@@ -37,6 +12,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/ompl/ompl_planner_configurator.h>
 #include <tesseract_motion_planners/ompl/profile/ompl_profile.h>
 #include <tesseract_motion_planners/ompl/types.h>
+#include <ompl/base/Constraint.h>
 
 #ifdef SWIG
 %shared_ptr(tesseract_planning::OMPLDefaultPlanProfile)
@@ -50,22 +26,24 @@ namespace tesseract_planning
  * every plan instruction will be its a seperate ompl motion plan and therefore planning information is relevent
  * for this motion planner in the profile.
  */
-class OMPLDefaultPlanProfile : public OMPLPlanProfile
+class OMPLConstrainedPlanProfile : public OMPLPlanProfile
 {
 public:
-  using Ptr = std::shared_ptr<OMPLDefaultPlanProfile>;
-  using ConstPtr = std::shared_ptr<const OMPLDefaultPlanProfile>;
+  using Ptr = std::shared_ptr<OMPLConstrainedPlanProfile>;
+  using ConstPtr = std::shared_ptr<const OMPLConstrainedPlanProfile>;
 
-  OMPLDefaultPlanProfile() = default;
-  ~OMPLDefaultPlanProfile() override = default;
-  OMPLDefaultPlanProfile(const OMPLDefaultPlanProfile&) = default;
-  OMPLDefaultPlanProfile& operator=(const OMPLDefaultPlanProfile&) = default;
-  OMPLDefaultPlanProfile(OMPLDefaultPlanProfile&&) noexcept = default;
-  OMPLDefaultPlanProfile& operator=(OMPLDefaultPlanProfile&&) noexcept = default;
-  OMPLDefaultPlanProfile(const tinyxml2::XMLElement& xml_element);
+  OMPLConstrainedPlanProfile() = default;
+  ~OMPLConstrainedPlanProfile() override = default;
+  OMPLConstrainedPlanProfile(const OMPLConstrainedPlanProfile&) = default;
+  OMPLConstrainedPlanProfile& operator=(const OMPLConstrainedPlanProfile&) = default;
+  OMPLConstrainedPlanProfile(OMPLConstrainedPlanProfile&&) noexcept = default;
+  OMPLConstrainedPlanProfile& operator=(OMPLConstrainedPlanProfile&&) noexcept = default;
+  OMPLConstrainedPlanProfile(const tinyxml2::XMLElement& xml_element);
 
   /** @brief The OMPL state space to use when planning */
-  OMPLProblemStateSpace state_space{ OMPLProblemStateSpace::REAL_STATE_SPACE };
+  OMPLProblemStateSpace state_space{ OMPLProblemStateSpace::REAL_CONSTRAINTED_STATE_SPACE };
+
+  ompl::base::ConstraintPtr constraint{ nullptr };
 
   /** @brief Max planning time allowed in seconds */
   double planning_time = 5.0;

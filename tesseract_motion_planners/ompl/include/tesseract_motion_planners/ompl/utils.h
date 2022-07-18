@@ -29,6 +29,7 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <ompl/base/State.h>
+#include <ompl/base/Constraint.h>
 #include <ompl/geometric/PathGeometric.h>
 #include <Eigen/Geometry>
 #include <functional>
@@ -100,6 +101,40 @@ bool checkStateInCollision(OMPLProblem& prob, const Eigen::VectorXd& state);
 ompl::base::StateSamplerPtr allocWeightedRealVectorStateSampler(const ompl::base::StateSpace* space,
                                                                 const Eigen::VectorXd& weights,
                                                                 const Eigen::MatrixX2d& limits);
+
+class LinkConstraint : public ompl::base::Constraint
+{
+public:
+  LinkConstraint(tesseract_kinematics::KinematicGroup::Ptr kin_group_,
+                 std::map<std::string, Eigen::Isometry3d> link_constraints_,
+                 double tolerance_ = 0.0001)
+    : ompl::base::Constraint(kin_group_->getJointNames().size(),
+                             link_constraints_.size(),
+                             //  std::max(link_constraints_.size(), std::size_t(1)),
+                             tolerance_)
+  {
+    kin_group = kin_group_;
+    link_constraints = link_constraints_;
+  }
+
+  void function(const Eigen::Ref<const Eigen::VectorXd>& x, Eigen::Ref<Eigen::VectorXd> out) const override
+  {
+    auto transform_map = kin_group->calcFwdKin(x);
+    int i = 0;
+    // if (!link_constraints.size())
+    // {
+    //   out[0] = 0;
+    //   return;
+    // }
+    for (auto& constraint : link_constraints)
+    {
+      out[i] = (transform_map.at(constraint.first).matrix() - constraint.second.matrix()).norm();
+      i++;
+    }
+  }
+  tesseract_kinematics::KinematicGroup::Ptr kin_group;
+  std::map<std::string, Eigen::Isometry3d> link_constraints;
+};
 
 }  // namespace tesseract_planning
 

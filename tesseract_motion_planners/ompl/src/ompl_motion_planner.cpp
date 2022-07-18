@@ -41,6 +41,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/ompl/continuous_motion_validator.h>
 #include <tesseract_motion_planners/ompl/discrete_motion_validator.h>
 #include <tesseract_motion_planners/ompl/profile/ompl_default_plan_profile.h>
+#include <tesseract_motion_planners/ompl/profile/ompl_constrained_plan_profile.h>
 #include <tesseract_motion_planners/ompl/weighted_real_vector_state_sampler.h>
 #include <tesseract_motion_planners/core/utils.h>
 
@@ -134,13 +135,17 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
     response.data = std::make_shared<std::vector<OMPLProblem::Ptr>>(problem);
   }
 
+  std::cout << "created problems, solving" << std::endl;
+
   // If the verbose set the log level to debug.
   if (verbose)
     console_bridge::setLogLevel(console_bridge::LogLevel::CONSOLE_BRIDGE_LOG_DEBUG);
 
+  std::cout << problem.size() << std::endl;
   /// @todo: Need to expand this to support multiple motion plans leveraging taskflow
   for (auto& p : problem)
   {
+    std::cout << "get problem definition" << std::endl;
     auto parallel_plan = std::make_shared<ompl::tools::ParallelPlan>(p->simple_setup->getProblemDefinition());
 
     for (const auto& planner : p->planners)
@@ -152,10 +157,12 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
       // Solve problem. Results are stored in the response
       // Disabling hybridization because there is a bug which will return a trajectory that starts at the end state
       // and finishes at the end state.
+      std::cout << "optmizing" << std::endl;
       status = parallel_plan->solve(p->planning_time, 1, static_cast<unsigned>(p->max_solutions), false);
     }
     else
     {
+      std::cout << "not optimizing " << std::endl;
       ompl::time::point end = ompl::time::now() + ompl::time::seconds(p->planning_time);
       const ompl::base::ProblemDefinitionPtr& pdef = p->simple_setup->getProblemDefinition();
       while (ompl::time::now() < end)
@@ -425,14 +432,20 @@ std::vector<OMPLProblem::Ptr> OMPLMotionPlanner::createProblems(const PlannerReq
       profile = getProfileString(name_, profile, request.plan_profile_remapping);
       auto cur_plan_profile =
           getProfile<OMPLPlanProfile>(name_, profile, *request.profiles, std::make_shared<OMPLDefaultPlanProfile>());
+      if (request.profiles->hasProfile<OMPLConstrainedPlanProfile>(name_, profile))
+      {
+        cur_plan_profile = request.profiles->getProfile<OMPLConstrainedPlanProfile>(name_, profile);
+      }
       cur_plan_profile = applyProfileOverrides(name_, profile, cur_plan_profile, plan_instruction.profile_overrides);
       if (!cur_plan_profile)
         throw std::runtime_error("OMPLMotionPlannerDefaultConfig: Invalid profile");
 
+      std::cout << "creating problems" << std::endl;
       /** @todo Should check that the joint names match the order of the manipulator */
       OMPLProblem::Ptr sub_prob = createOMPLSubProblem(request, manip);
       cur_plan_profile->setup(*sub_prob);
       sub_prob->n_output_states = static_cast<int>(seed_composite.size()) + 1;
+      std::cout << sub_prob->n_output_states << std::endl;
 
       if (plan_instruction.isLinear())
       {
@@ -476,7 +489,7 @@ std::vector<OMPLProblem::Ptr> OMPLMotionPlanner::createProblems(const PlannerReq
           {
             throw std::runtime_error("OMPLMotionPlannerDefaultConfig: unknown waypoint type");
           }
-
+          std::cout << "adding to problem" << std::endl;
           problem.push_back(std::move(sub_prob));
           ++index;
         }
@@ -513,6 +526,14 @@ std::vector<OMPLProblem::Ptr> OMPLMotionPlanner::createProblems(const PlannerReq
             assert(false);
           }
 
+          problem.push_back(std::move(sub_prob));
+          ++index;
+        }
+        else if (isMixedWaypoint(plan_instruction.getWaypoint()))
+        {
+          const auto& cur_wp = plan_instruction.getWaypoint().as<tesseract_planning::MixedWaypoint>();
+          // cur_plan_profile->applyGoalStates(
+          //     *sub_prob, cur_wp, plan_instruction, composite_mi, active_link_names, index);
           problem.push_back(std::move(sub_prob));
           ++index;
         }
