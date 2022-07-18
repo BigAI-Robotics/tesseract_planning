@@ -60,7 +60,7 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
   int retry = 0;
-  while (ik_with_cost_queue.size() < 400)
+  while (ik_with_cost_queue.size() < 200)
   {
     Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
     // std::cout << ik_seed.transpose() << std::endl;
