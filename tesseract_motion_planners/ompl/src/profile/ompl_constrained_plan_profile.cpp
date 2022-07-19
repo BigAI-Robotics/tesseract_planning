@@ -478,6 +478,15 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
   }
 }
 
+void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
+                                             const tesseract_planning::MixedWaypoint& mixed_waypoint,
+                                             const Instruction& /*parent_instruction*/,
+                                             const ManipulatorInfo& /*manip_info*/,
+                                             const std::vector<std::string>& /*active_links*/,
+                                             int /*index*/) const
+{
+}
+
 void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
                                                   const Eigen::Isometry3d& cartesian_waypoint,
                                                   const Instruction& parent_instruction,
