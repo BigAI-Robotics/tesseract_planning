@@ -1,6 +1,7 @@
 #include <tesseract_motion_planners/3mo/3mo_utils.h>
 #include <tesseract_command_language/mixed_waypoint.h>
 #include <queue>
+#include <fmt/ranges.h>
 
 namespace tesseract_planning
 {
@@ -57,14 +58,30 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
   for (auto link_target : waypoint.link_targets)
   {
+    std::cout << "adding kin group input: " << link_target.first << "\nlinear\n" << link_target.second.linear()
+              << "\ntranslation: " << link_target.second.translation().transpose() << "\nworking frame: " << working_frame
+              << std::endl;
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
   int retry = 0;
   while (ik_with_cost_queue.size() < 200)
   {
     Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
-    // std::cout << ik_seed.transpose() << std::endl;
-    tesseract_kinematics::IKSolutions result = manip->calcInvKin(ik_inputs, ik_seed);
+    // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() << std::endl;
+    // std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
+    // std::cout << fmt::format("kin group joint names: {}", manip->getAllPossibleTipLinkNames()).c_str() << std::endl;
+    tesseract_kinematics::IKSolutions result;
+    try
+    {
+      result = manip->calcInvKin(ik_inputs, ik_seed);
+    }
+    catch(const std::exception& e)
+    {
+      std::cerr << e.what() << "\nDesired link pose should be tip-link pose!" << '\n';
+      throw e;
+    }
+    
+    // std::cout << "result length: " << result.size() << std::endl;
     for (const auto& res : result)
     {
       double cost = getIKCost(waypoint, res, prev_joints, cost_coeff);
