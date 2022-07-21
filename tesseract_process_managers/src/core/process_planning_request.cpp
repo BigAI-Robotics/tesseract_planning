@@ -40,6 +40,7 @@ bool tesseract_planning::ProcessPlanningRequest::operator==(const tesseract_plan
   using namespace tesseract_common;
   using namespace tesseract_environment;
   bool equal = true;
+  equal &= executor_name == rhs.executor_name;
   equal &= name == rhs.name;
   equal &= instructions == rhs.instructions;
   equal &= seed == rhs.seed;
@@ -58,8 +59,11 @@ bool tesseract_planning::ProcessPlanningRequest::operator!=(const tesseract_plan
 }
 
 template <class Archive>
-void tesseract_planning::ProcessPlanningRequest::serialize(Archive& ar, const unsigned int /*version*/)
+void tesseract_planning::ProcessPlanningRequest::serialize(Archive& ar, const unsigned int version)
 {
+  if (version >= 1)
+    ar& BOOST_SERIALIZATION_NVP(executor_name);
+
   ar& BOOST_SERIALIZATION_NVP(name);
   ar& BOOST_SERIALIZATION_NVP(instructions);
   ar& BOOST_SERIALIZATION_NVP(seed);

@@ -39,6 +39,7 @@ target_clang_tidy(${PROJECT_NAME}_cartesian_waypoint_unit ENABLE ${TESSERACT_ENA
 target_cxx_version(${PROJECT_NAME}_cartesian_waypoint_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_cartesian_waypoint_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
@@ -60,6 +61,7 @@ target_clang_tidy(${PROJECT_NAME}_joint_waypoint_unit ENABLE ${TESSERACT_ENABLE_
 target_cxx_version(${PROJECT_NAME}_joint_waypoint_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_joint_waypoint_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
@@ -81,6 +83,7 @@ target_clang_tidy(${PROJECT_NAME}_plan_instruction_unit ENABLE ${TESSERACT_ENABL
 target_cxx_version(${PROJECT_NAME}_plan_instruction_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_plan_instruction_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
@@ -102,6 +105,7 @@ target_clang_tidy(${PROJECT_NAME}_move_instruction_unit ENABLE ${TESSERACT_ENABL
 target_cxx_version(${PROJECT_NAME}_move_instruction_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_move_instruction_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
@@ -118,6 +122,7 @@ target_clang_tidy(${PROJECT_NAME}_serialize_unit ENABLE ${TESSERACT_ENABLE_CLANG
 target_cxx_version(${PROJECT_NAME}_serialize_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_serialize_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
@@ -134,9 +139,23 @@ target_clang_tidy(${PROJECT_NAME}_utils_unit ENABLE ${TESSERACT_ENABLE_CLANG_TID
 target_cxx_version(${PROJECT_NAME}_utils_unit PRIVATE VERSION ${TESSERACT_CXX_VERSION})
 target_code_coverage(
   ${PROJECT_NAME}_utils_unit
+  PRIVATE
   ALL
   EXCLUDE ${COVERAGE_EXCLUDE}
   ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
 add_gtest_discover_tests(${PROJECT_NAME}_utils_unit)
 add_dependencies(run_tests ${PROJECT_NAME}_utils_unit)
 add_dependencies(${PROJECT_NAME}_utils_unit ${PROJECT_NAME})
+
+# Type Erasure Benchmarks
+find_package(benchmark REQUIRED)
+add_executable(${PROJECT_NAME}_type_erasure_benchmark type_erasure_benchmark.cpp)
+target_link_libraries(${PROJECT_NAME}_type_erasure_benchmark PRIVATE benchmark::benchmark ${PROJECT_NAME})
+target_cxx_version(${PROJECT_NAME}_type_erasure_benchmark PRIVATE VERSION ${TESSERACT_CXX_VERSION})
+target_code_coverage(
+  ${PROJECT_NAME}_type_erasure_benchmark
+  PRIVATE
+  ALL
+  EXCLUDE ${COVERAGE_EXCLUDE}
+  ENABLE ${TESSERACT_ENABLE_CODE_COVERAGE})
+# add_run_benchmark_target(${PROJECT_NAME}_type_erasure_benchmark)

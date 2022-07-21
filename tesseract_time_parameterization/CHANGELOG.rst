@@ -2,6 +2,29 @@
 Changelog for package tesseract_time_parameterization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.12.0 (2022-07-07)
+-------------------
+* Update ros_industrial_cmake_boilerplate to 0.3.0 (`#214 <https://github.com/tesseract-robotics/tesseract_planning/issues/214>`_)
+* Added CPack (`#208 <https://github.com/tesseract-robotics/tesseract_planning/issues/208>`_)
+  Co-authored-by: Levi Armstrong <levi.armstrong@gmail.com>
+* Add support for sco::Optimizer::Callbacks to the trajopt solver profile (`#207 <https://github.com/tesseract-robotics/tesseract_planning/issues/207>`_)
+* Contributors: Levi Armstrong, Michael Ripperger
+
+0.11.0 (2022-06-20)
+-------------------
+
+0.10.4 (2022-06-03)
+-------------------
+
+0.10.3 (2022-05-31)
+-------------------
+
+0.10.2 (2022-05-24)
+-------------------
+
+0.10.1 (2022-05-09)
+-------------------
+
 0.10.0 (2022-05-03)
 -------------------
 

@@ -45,6 +45,8 @@ void ProcessPlanningFuture::clear()
   problem = std::make_shared<ProcessPlanningProblem>();
 }
 
+bool ProcessPlanningFuture::valid() const { return process_future.valid(); }
+
 bool ProcessPlanningFuture::ready() const
 {
   return (process_future.wait_for(std::chrono::seconds(0)) == std::future_status::ready);
@@ -67,7 +69,7 @@ bool ProcessPlanningFuture::operator==(const tesseract_planning::ProcessPlanning
 {
   bool equal = true;
   equal &= process_future.valid() == rhs.process_future.valid();
-  equal &= (problem && rhs.problem && *problem == *rhs.problem) || (!problem && !rhs.problem);
+  equal &= tesseract_common::pointersEqual(problem, rhs.problem);
   equal &= tesseract_common::pointersEqual(interface, rhs.interface);
 
   return equal;

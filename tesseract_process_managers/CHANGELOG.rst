@@ -2,6 +2,40 @@
 Changelog for package tesseract_process_managers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.12.0 (2022-07-07)
+-------------------
+* Update ros_industrial_cmake_boilerplate to 0.3.0 (`#214 <https://github.com/tesseract-robotics/tesseract_planning/issues/214>`_)
+* Move use of BOOST_CLASS_VERSION to header
+* Add ability to submit ProcessPlanningProblem to planning server (`#213 <https://github.com/tesseract-robotics/tesseract_planning/issues/213>`_)
+* Added CPack (`#208 <https://github.com/tesseract-robotics/tesseract_planning/issues/208>`_)
+  Co-authored-by: Levi Armstrong <levi.armstrong@gmail.com>
+* Fix Typos
+  - TrajOptMotionPlanner
+  - DefaultProcessManagers
+* Contributors: Levi Armstrong, Michael Ripperger, christian.petersmeier
+
+0.11.0 (2022-06-20)
+-------------------
+
+0.10.4 (2022-06-03)
+-------------------
+
+0.10.3 (2022-05-31)
+-------------------
+* Switch test to use tcmalloc_minimal
+* Add valid method to ProcessPlanningFuture
+* Contributors: Levi Armstrong
+
+0.10.2 (2022-05-24)
+-------------------
+* Make process planning server threadsafe and support multiple executors (`#197 <https://github.com/tesseract-robotics/tesseract_planning/issues/197>`_)
+* Contributors: Levi Armstrong
+
+0.10.1 (2022-05-09)
+-------------------
+* Add name to process planning problem
+* Contributors: Levi Armstrong
+
 0.10.0 (2022-05-03)
 -------------------
 * Remove duplicate serialization methods and use those in tesseract_common
