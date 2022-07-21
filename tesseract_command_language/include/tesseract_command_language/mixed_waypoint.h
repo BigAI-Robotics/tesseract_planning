@@ -57,7 +57,7 @@ private:
 #ifdef SWIG
 %tesseract_command_language_add_waypoint_type(MixedWaypoint)
 #else
-TESSERACT_WAYPOINT_EXPORT_KEY(tesseract_planning::MixedWaypoint);
+TESSERACT_WAYPOINT_EXPORT_KEY(tesseract_planning, MixedWaypoint);
 #endif  // SWIG
 
 #endif  // TESSERACT_COMMAND_LANGUAGE_NULL_WAYPOINT_H
