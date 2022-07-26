@@ -105,7 +105,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
     // cartesian waypoint not specified, no need to calculate ik
     CONSOLE_BRIDGE_logDebug("no cartesian target specified in mixed waypoint, will not calculate ik");
     joint_target = j1;
-    for (auto& joint : wp.joint_targets)
+    for (auto& joint : wp.joint_targets_)
     {
       auto joint_idx = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint.first);
       if (joint_idx == wp.joint_names.end())

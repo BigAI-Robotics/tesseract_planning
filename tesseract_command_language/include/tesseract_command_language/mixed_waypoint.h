@@ -21,7 +21,7 @@ public:
 
   void print(const std::string& prefix = "") const;
 
-  /*<< ", joint_targets: " << this->joint_targets.size()
+  /*<< ", joint_targets_: " << this->joint_targets_.size()
 << ", link_targets: " << this->link_targets.size() << std::endl;
 }*/
 
@@ -33,7 +33,7 @@ public:
   // all joint names for manipulator
   std::vector<std::string> joint_names;
   // target joint name and value
-  std::map<std::string, double> joint_targets;
+  std::map<std::string, double> joint_targets_;
   // target link name and pose
   std::map<std::string, Eigen::Isometry3d> link_targets;
   std::map<std::string, Eigen::Isometry3d> link_constraints;
@@ -43,6 +43,7 @@ public:
 
   void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf);
 
+  std::map<int, double> getJointIndexTargets() const;
   // not in use(formerly for generating term info, now deprecated)
   // JointWaypoint extractJointWaypoint() const;
   // CartesianWaypoint extractCartesianWaypoint() const;

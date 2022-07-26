@@ -58,29 +58,29 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
   for (auto link_target : waypoint.link_targets)
   {
-    std::cout << "adding kin group input: " << link_target.first << "\nlinear\n" << link_target.second.linear()
-              << "\ntranslation: " << link_target.second.translation().transpose() << "\nworking frame: " << working_frame
-              << std::endl;
+    std::cout << "adding kin group input: " << link_target.first << "\nlinear\n"
+              << link_target.second.linear() << "\ntranslation: " << link_target.second.translation().transpose()
+              << "\nworking frame: " << working_frame << std::endl;
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
   int retry = 0;
   while (ik_with_cost_queue.size() < 200)
   {
     Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
-    // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() << std::endl;
-    // std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
+    // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
+    // std::endl; std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
     // std::cout << fmt::format("kin group joint names: {}", manip->getAllPossibleTipLinkNames()).c_str() << std::endl;
     tesseract_kinematics::IKSolutions result;
     try
     {
       result = manip->calcInvKin(ik_inputs, ik_seed);
     }
-    catch(const std::exception& e)
+    catch (const std::exception& e)
     {
       std::cerr << e.what() << "\nDesired link pose should be tip-link pose!" << '\n';
       throw e;
     }
-    
+
     // std::cout << "result length: " << result.size() << std::endl;
     for (const auto& res : result)
     {
@@ -130,13 +130,10 @@ double getIKCost(const MixedWaypoint& wp,
   assert(target.size() == base.size() && target.size() == cost_coefficient.size());
   double cost = 0;
   cost += (target - base).cwiseProduct(cost_coefficient).array().abs().sum() * 2;
-  for (auto const& joint_target : wp.joint_targets)
+  for (auto const& joint_target : wp.getJointIndexTargets())
   {
     // std::cout << "joint target: " << joint_target.first << " " << joint_target.second << std::endl;
-    auto itr = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint_target.first);
-    int index = std::distance(wp.joint_names.begin(), itr);
-    // std::cout << "index found: " << index << std::endl;
-    const double diff = std::abs(target[index] - joint_target.second);
+    const double diff = std::abs(target[joint_target.first] - joint_target.second);
     if (diff > 0.2)
     {
       // std::cout << "diff: " << target[index] << " " << diff << std::endl;

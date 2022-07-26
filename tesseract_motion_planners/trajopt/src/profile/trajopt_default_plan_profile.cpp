@@ -216,7 +216,7 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
   // generate waypoint and coeff from target joint values
   Eigen::VectorXd adjusted_joint_coeff = Eigen::VectorXd::Zero(joint_num);
   JointWaypoint joint_waypoint(mixed_waypoint.joint_names, Eigen::VectorXd::Zero(joint_num));
-  for (auto t : mixed_waypoint.joint_targets)
+  for (auto t : mixed_waypoint.joint_targets_)
   {
     auto it = std::find(mixed_waypoint.joint_names.begin(), mixed_waypoint.joint_names.end(), t.first);
     if (it == mixed_waypoint.joint_names.end())

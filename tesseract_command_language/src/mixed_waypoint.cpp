@@ -46,7 +46,7 @@ void MixedWaypoint::print(const std::string& prefix) const
 
 void MixedWaypoint::addJointTarget(std::string joint_name, double joint_value)
 {
-  joint_targets[joint_name] = joint_value;
+  joint_targets_[joint_name] = joint_value;
 }
 
 void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf)
@@ -57,6 +57,22 @@ void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link
 void MixedWaypoint::addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf)
 {
   link_constraints[link_name] = link_tf;
+}
+
+std::map<int, double> MixedWaypoint::getJointIndexTargets() const
+{
+  std::map<int, double> joint_index_targets;
+  for (auto const& jt : joint_targets_)
+  {
+    auto itr = std::find(joint_names.begin(), joint_names.end(), jt.first);
+    if (itr == joint_names.end())
+    {
+      throw std::logic_error("cannot find target joint name");
+    }
+    int index = std::distance(joint_names.begin(), itr);
+    joint_index_targets[index] = jt.second;
+  }
+  return joint_index_targets;
 }
 
 bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const { return true; }
