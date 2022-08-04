@@ -29,8 +29,11 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <ompl/base/State.h>
+#include <ompl/base/goals/GoalRegion.h>
 #include <ompl/base/Constraint.h>
+#include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/geometric/PathGeometric.h>
+
 #include <Eigen/Geometry>
 #include <functional>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
@@ -132,8 +135,32 @@ public:
       i++;
     }
   }
+
+  
   tesseract_kinematics::KinematicGroup::Ptr kin_group;
   std::map<std::string, Eigen::Isometry3d> link_constraints;
+};
+
+class JointGoal : public ompl::base::GoalRegion
+{
+public:
+  JointGoal(std::map<int, double> joint_index_targets, const ompl::base::SpaceInformationPtr& si)
+    : joint_index_targets_(joint_index_targets), ompl::base::GoalRegion(si){};
+  ~JointGoal() override = default;
+
+  double distanceGoal(const ompl::base::State* st) const
+  {
+    auto* s1 = static_cast<const ompl::base::RealVectorStateSpace::StateType*>(st)->values;
+    double dist = 0.0;
+    for (const auto& lt : joint_index_targets_)
+    {
+      dist += (s1[lt.first] - lt.second);
+    }
+    return dist;
+  };
+
+protected:
+  std::map<int, double> joint_index_targets_;
 };
 
 }  // namespace tesseract_planning
