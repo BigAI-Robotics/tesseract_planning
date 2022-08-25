@@ -24,6 +24,62 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
   return true;
 }
 
+tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                         const MixedWaypoint& waypoint,
+                                         const std::string working_frame,
+                                         double tolerance)
+{
+  auto limits = manip->getLimits();
+  auto redundancy_indices = manip->getRedundancyCapableJointIndices();
+  tesseract_kinematics::KinGroupIKInputs ik_inputs;
+  for (auto link_target : waypoint.link_targets)
+  {
+    ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
+  }
+  tesseract_kinematics::IKSolutions solutions;
+  int retry = 0;
+  while (solutions.size() < 400)
+  {
+    Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+    // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
+    // std::endl; std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
+    // std::cout << fmt::format("kin group joint names: {}", manip->getAllPossibleTipLinkNames()).c_str() << std::endl;
+    tesseract_kinematics::IKSolutions result;
+    try
+    {
+      result = manip->calcInvKin(ik_inputs, ik_seed);
+    }
+    catch (const std::exception& e)
+    {
+      std::cerr << e.what() << "\nDesired link pose should be tip-link pose!" << '\n';
+      throw e;
+    }
+
+    // std::cout << "result length: " << result.size() << std::endl;
+    for (const auto& res : result)
+    {
+      if (getIKGoalCost(res, waypoint, tolerance) >= 0)
+        solutions.push_back(res);
+      auto redundant_solutions =
+          tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
+      for (const auto& redundant_sol : redundant_solutions)
+      {
+        if (getIKGoalCost(redundant_sol, waypoint, tolerance) >= 0)
+          solutions.push_back(redundant_sol);
+      }
+    }
+
+    if (solutions.empty())
+    {
+      retry++;
+      if (retry > 5000)  // TODO: adjust the retry number
+        throw std::runtime_error("cannot find valid ik solution");
+    }
+  }
+
+  return solutions;
+}
+
 // seed here is the initial joint pose, not actual seed used for kinematics.
 tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::KinematicGroup::Ptr manip,
                                                  const MixedWaypoint& waypoint,
@@ -130,18 +186,27 @@ double getIKCost(const MixedWaypoint& wp,
   assert(target.size() == base.size() && target.size() == cost_coefficient.size());
   double cost = 0;
   cost += (target - base).cwiseProduct(cost_coefficient).array().abs().sum() * 2;
-  for (auto const& joint_target : wp.getJointIndexTargets())
+  double ik_goal_cost = getIKGoalCost(target, wp, 0.2);
+  if (ik_goal_cost < 0)
   {
-    // std::cout << "joint target: " << joint_target.first << " " << joint_target.second << std::endl;
-    const double diff = std::abs(target[joint_target.first] - joint_target.second);
-    if (diff > 0.2)
+    return -1.0;
+  }
+  cost += ik_goal_cost * 7;
+  return std::abs(cost);
+}
+
+double getIKGoalCost(const Eigen::VectorXd& ik, const MixedWaypoint& wp, double tolerance)
+{
+  double cost = 0;
+  for (auto const& jt : wp.getJointIndexTargets())
+  {
+    const double diff = std::abs(ik[jt.first] - jt.second);
+    if (diff > tolerance)
     {
-      // std::cout << "diff: " << target[index] << " " << diff << std::endl;
       return -1.0;
     }
-    cost += std::pow(diff, 1) * 7;
+    cost += std::pow(diff, 1);
   }
-  return std::abs(cost);
 }
 
 tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment::Environment::ConstPtr env,
