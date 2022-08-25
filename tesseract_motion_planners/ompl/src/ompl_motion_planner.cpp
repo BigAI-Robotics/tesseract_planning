@@ -234,10 +234,12 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
     }
   }
 
+  CONSOLE_BRIDGE_logDebug("flattening results...");
   // Flatten the results to make them easier to process
   response.results = request.seed;
   std::vector<std::reference_wrapper<Instruction>> results_flattened =
       flattenProgramToPattern(response.results, request.instructions);
+  CONSOLE_BRIDGE_logDebug("flatten results success");
   std::vector<std::reference_wrapper<const Instruction>> instructions_flattened = flattenProgram(request.instructions);
 
   std::size_t instructions_idx = 0;  // Index for each input instruction
@@ -273,14 +275,15 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
     if (isPlanInstruction(instructions_flattened.at(instructions_idx).get()))
     {
       const auto& p = problem[prob_idx];
-
+      CONSOLE_BRIDGE_logDebug("getting trajectory for following instructions...");
       // Get the results
       tesseract_common::TrajArray trajectory = p->getTrajectory();
-
+      CONSOLE_BRIDGE_logDebug("get trajetory for following instructions success");
       assert(checkStartState(p->simple_setup->getProblemDefinition(), trajectory.row(0), p->extractor));
       assert(
           checkGoalState(p->simple_setup->getProblemDefinition(), trajectory.bottomRows(1).transpose(), p->extractor));
 
+      CONSOLE_BRIDGE_logDebug("check start and goal success");
       // Loop over the flattened results and add them to response if the input was a plan instruction
       auto& move_instructions = results_flattened[instructions_idx].get().as<CompositeInstruction>();
       // Adjust result index to align final point since start instruction is already handled
@@ -288,6 +291,7 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
       for (auto& instruction : move_instructions)
         instruction.as<MoveInstruction>().getWaypoint().as<StateWaypoint>().position = trajectory.row(result_index++);
 
+      CONSOLE_BRIDGE_logDebug("process prob success");
       // Increment the problem
       prob_idx++;
     }

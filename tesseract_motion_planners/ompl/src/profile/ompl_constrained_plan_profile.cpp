@@ -568,6 +568,10 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
           for (unsigned j = 0; j < dof; ++j)
             goal_state[j] = rs[static_cast<Eigen::Index>(j)];
 
+          // std::stringstream buffer;
+          // buffer << rs.transpose();
+          // CONSOLE_BRIDGE_logDebug("[mixed waypoint] added to goal state: %s", buffer.str().c_str());
+
           goal_states->addState(goal_state);
         }
       }
