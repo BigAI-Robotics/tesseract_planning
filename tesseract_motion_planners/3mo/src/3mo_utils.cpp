@@ -29,6 +29,7 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
                                          const std::string working_frame,
                                          double tolerance)
 {
+  CONSOLE_BRIDGE_logDebug("getting iks...");
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
@@ -89,7 +90,7 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
 {
   std::stringstream ss;
   ss << cost_coefficient_input.transpose();
-  CONSOLE_BRIDGE_logDebug("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
+  CONSOLE_BRIDGE_logInform("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
   Eigen::VectorXd cost_coeff;
@@ -225,6 +226,10 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     auto current_state = env->getState(kin_group->getJointNames(), ik);
     contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
     contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
+    for (auto& collision : contact_result)
+    {
+      std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+    }
     if (contact_result.size() <= best_collision_count)
     {
       best_collision_count = contact_result.size();
@@ -237,7 +242,10 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
   }
 
   if (result.empty())
+  {
+    CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result");
     result.push_back(best_solution);
+  }
 
   return result;
 }

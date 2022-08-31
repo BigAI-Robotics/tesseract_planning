@@ -143,6 +143,7 @@ CompositeInstruction getInterpolatedComposite(const std::vector<std::string>& jo
                                               const Eigen::MatrixXd& states,
                                               const PlanInstruction& base_instruction)
 {
+  CONSOLE_BRIDGE_logDebug("getting interpolated composite...\r");
   CompositeInstruction composite;
   composite.setManipulatorInfo(base_instruction.getManipulatorInfo());
   composite.setDescription(base_instruction.getDescription());
@@ -160,7 +161,6 @@ CompositeInstruction getInterpolatedComposite(const std::vector<std::string>& jo
 
   MoveInstruction move_instruction(StateWaypoint(joint_names, states.col(states.cols() - 1)), base_instruction);
   composite.push_back(move_instruction);
-
   return composite;
 }
 
