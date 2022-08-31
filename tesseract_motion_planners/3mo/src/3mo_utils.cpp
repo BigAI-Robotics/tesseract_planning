@@ -226,10 +226,10 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     auto current_state = env->getState(kin_group->getJointNames(), ik);
     contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
     contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
-    for (auto& collision : contact_result)
-    {
-      std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
-    }
+    // for (auto& collision : contact_result)
+    // {
+    //   std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+    // }
     if (contact_result.size() <= best_collision_count)
     {
       best_collision_count = contact_result.size();
