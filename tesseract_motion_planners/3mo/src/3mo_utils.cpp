@@ -52,7 +52,8 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
     }
     catch (const std::exception& e)
     {
-      std::cerr << e.what() << "\nDesired link pose should be tip-link pose!" << '\n';
+      std::cerr << e.what() << std::endl;
+      CONSOLE_BRIDGE_logError("Can't find desired link name in kinematic chain.");
       throw e;
     }
 
@@ -134,7 +135,8 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
     }
     catch (const std::exception& e)
     {
-      std::cerr << e.what() << "\nDesired link pose should be tip-link pose!" << '\n';
+      std::cerr << e.what() << std::endl;
+      CONSOLE_BRIDGE_logError("Can't find desired link name in kinematic chain.");
       throw e;
     }
 
