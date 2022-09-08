@@ -121,11 +121,15 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   {
     // cartesian waypoint specified
     CONSOLE_BRIDGE_logDebug("calculating ik for mixed waypoint...");
-    auto ik_result = getIKWithOrder(kin_group, wp, base.working_frame, j1, cost_coeff);
+    auto ik_result = getIKsWithCost(kin_group, wp, base.working_frame, j1, cost_coeff);
     auto filtered_ik_result = filterCollisionIK(request.env, kin_group, ik_result);
     // std::cout << "total solutions: " << filtered_ik_result.size() << std::endl
     //           << "best sol: " << filtered_ik_result.at(0).transpose() << std::endl;
-    joint_target = filtered_ik_result.at(0);
+    std::stringstream ss;
+    ss << filtered_ik_result.at(0).first.transpose();
+    CONSOLE_BRIDGE_logInform(
+        "current joint target: \nik: %s, cost: %f", ss.str().c_str(), filtered_ik_result.at(0).second);
+    joint_target = filtered_ik_result.at(0).first;
   }
   // get joint joint seed
   auto states = getJointJointSeed(j1, joint_target, request, kin_group);

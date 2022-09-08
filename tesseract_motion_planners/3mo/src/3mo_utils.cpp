@@ -83,15 +83,14 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
 }
 
 // seed here is the initial joint pose, not actual seed used for kinematics.
-tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                                 const MixedWaypoint& waypoint,
-                                                 const std::string working_frame,
-                                                 const Eigen::VectorXd& prev_joints,
-                                                 const Eigen::VectorXd& cost_coefficient_input)
+std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                                               const MixedWaypoint& waypoint,
+                                                               const std::string working_frame,
+                                                               const Eigen::VectorXd& prev_joints,
+                                                               const Eigen::VectorXd& cost_coefficient_input)
 {
   std::stringstream ss;
-  ss << cost_coefficient_input.transpose();
-  CONSOLE_BRIDGE_logInform("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
+
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
   Eigen::VectorXd cost_coeff;
@@ -102,9 +101,11 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   }
   else
   {
-    CONSOLE_BRIDGE_logDebug("no cost coeff found, setting cost coeffs with 1");
+    CONSOLE_BRIDGE_logInform("no cost coeff found, setting cost coeffs with 1");
     cost_coeff.setOnes(prev_joints.size());
   }
+  ss << cost_coeff.transpose();
+  CONSOLE_BRIDGE_logInform("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
   // if (!info.has_mixed_waypoint)
   // {
   //   throw std::runtime_error("Instruction waypoint need to have a mixed waypoint.");
@@ -116,9 +117,11 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
   for (auto link_target : waypoint.link_targets)
   {
-    std::cout << "adding kin group input: " << link_target.first << "\nlinear\n"
-              << link_target.second.linear() << "\ntranslation: " << link_target.second.translation().transpose()
-              << "\nworking frame: " << working_frame << std::endl;
+    std::stringstream ss;
+    ss << link_target.first << ", working frame: " << working_frame
+       << ", translation: " << link_target.second.translation().transpose() << ", linear\n"
+       << link_target.second.linear();
+    CONSOLE_BRIDGE_logDebug("adding kin group input: %s", ss.str().c_str());
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
   int retry = 0;
@@ -166,14 +169,19 @@ tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::Kinematic
   }
   std::stringstream buffer;
   buffer << ik_with_cost_queue.top().ik.transpose();
-  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f", buffer.str().c_str(), ik_with_cost_queue.top().cost);
+  std::stringstream coeff_buffer;
+  coeff_buffer << cost_coeff.transpose();
+  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f, coeff: %s",
+                          buffer.str().c_str(),
+                          ik_with_cost_queue.top().cost,
+                          coeff_buffer.str().c_str());
   // reverse the ik with cost queue and return
-  tesseract_kinematics::IKSolutions solutions;
+  std::vector<std::pair<Eigen::VectorXd, double>> solutions;
   while (ik_with_cost_queue.size() > 0)
   {
     // solutions.insert(solutions.begin(), ik_with_cost_queue.top().ik);
     // std::cout << ik_with_cost_queue.top().cost << ", ";
-    solutions.push_back(ik_with_cost_queue.top().ik);
+    solutions.push_back(std::make_pair(ik_with_cost_queue.top().ik, ik_with_cost_queue.top().cost));
     ik_with_cost_queue.pop();
   }
   return solutions;
@@ -212,6 +220,23 @@ double getIKGoalCost(const Eigen::VectorXd& ik, const MixedWaypoint& wp, double 
   }
 }
 
+std::size_t getIKCollisionCount(const tesseract_environment::Environment::ConstPtr env,
+                                tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                                Eigen::VectorXd joints)
+{
+  tesseract_collision::ContactResultMap contact_result;
+  tesseract_collision::DiscreteContactManager::Ptr contact_manager = env->getDiscreteContactManager()->clone();
+  size_t best_collision_count = 1000;
+  auto current_state = env->getState(kin_group->getJointNames(), joints);
+  contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
+  contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
+  // for (auto& collision : contact_result)
+  // {
+  //   std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+  // }
+  return contact_result.size();
+}
+
 tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment::Environment::ConstPtr env,
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,
                                                     tesseract_kinematics::IKSolutions ik_input)
@@ -227,6 +252,49 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
   {
     contact_result.clear();
     auto current_state = env->getState(kin_group->getJointNames(), ik);
+    contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
+    contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
+    // for (auto& collision : contact_result)
+    // {
+    //   std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+    // }
+    if (contact_result.size() <= best_collision_count)
+    {
+      best_collision_count = contact_result.size();
+      best_solution = ik;
+      if (contact_result.size() == 0)
+      {
+        result.push_back(ik);
+      }
+    }
+  }
+
+  if (result.empty())
+  {
+    CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result");
+    result.push_back(best_solution);
+  }
+  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", ik_input.size(), result.size());
+
+  return result;
+}
+
+std::vector<std::pair<Eigen::VectorXd, double>>
+filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
+                  tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                  std::vector<std::pair<Eigen::VectorXd, double>> ik_input)
+{
+  CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
+  std::vector<std::pair<Eigen::VectorXd, double>> result;
+  // check collision
+  tesseract_collision::ContactResultMap contact_result;
+  tesseract_collision::DiscreteContactManager::Ptr contact_manager = env->getDiscreteContactManager()->clone();
+  size_t best_collision_count = 1000;
+  std::pair<Eigen::VectorXd, double> best_solution = ik_input.at(0);
+  for (auto const& ik : ik_input)
+  {
+    contact_result.clear();
+    auto current_state = env->getState(kin_group->getJointNames(), ik.first);
     contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
     contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
     // for (auto& collision : contact_result)

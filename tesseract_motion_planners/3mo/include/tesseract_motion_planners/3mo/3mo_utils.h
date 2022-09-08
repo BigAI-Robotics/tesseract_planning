@@ -25,11 +25,11 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
                                          const std::string working_frame,
                                          double tolerance = 0.2);
 
-tesseract_kinematics::IKSolutions getIKWithOrder(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                                 const MixedWaypoint& waypoint,
-                                                 const std::string working_frame,
-                                                 const Eigen::VectorXd& prev_joints,
-                                                 const Eigen::VectorXd& cost_coeff = Eigen::VectorXd());
+std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                                               const MixedWaypoint& waypoint,
+                                                               const std::string working_frame,
+                                                               const Eigen::VectorXd& prev_joints,
+                                                               const Eigen::VectorXd& cost_coeff = Eigen::VectorXd());
 
 double getIKCost(const tesseract_planning::MixedWaypoint& wp,
                  const Eigen::VectorXd& target,
@@ -38,7 +38,16 @@ double getIKCost(const tesseract_planning::MixedWaypoint& wp,
 
 double getIKGoalCost(const Eigen::VectorXd& ik, const MixedWaypoint& wp, double tolerance);
 
+std::size_t getIKCollisionCount(const tesseract_environment::Environment::ConstPtr env,
+                                tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                                Eigen::VectorXd joints);
+
 tesseract_kinematics::IKSolutions filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,
                                                     tesseract_kinematics::IKSolutions ik_input);
+
+std::vector<std::pair<Eigen::VectorXd, double>>
+filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
+                  tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                  std::vector<std::pair<Eigen::VectorXd, double>> ik_input);
 }  // namespace tesseract_planning
