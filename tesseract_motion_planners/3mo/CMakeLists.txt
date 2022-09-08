@@ -7,6 +7,7 @@ add_library(
   src/3mo_motion_planner.cpp
   src/3mo_utils.cpp
   src/profile/3mo_planner_plan_profile.cpp
+  src/profile/3mo_planner_ik_plan_profile.cpp
   )
 target_link_libraries(${PROJECT_NAME}_3mo PUBLIC ${PROJECT_NAME}_core Boost::boost)
 target_compile_options(${PROJECT_NAME}_3mo PRIVATE ${TESSERACT_COMPILE_OPTIONS_PRIVATE})

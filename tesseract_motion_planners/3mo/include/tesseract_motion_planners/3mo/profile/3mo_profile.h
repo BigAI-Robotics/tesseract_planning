@@ -24,8 +24,8 @@
  * limitations under the License.
  */
 
-#ifndef TESSERACT_MOTION_PLANNERS_3MO_PLAN_PROFILE_H
-#define TESSERACT_MOTION_PLANNERS_3MO_PLAN_PROFILE_H
+#ifndef TESSERACT_MOTION_PLANNERS_3MO_PROFILE_H
+#define TESSERACT_MOTION_PLANNERS_3MO_PROFILE_H
 
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
@@ -34,63 +34,43 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_command_language/command_language.h>
 #include <tesseract_motion_planners/core/types.h>
-#include <tesseract_motion_planners/3mo/profile/3mo_profile.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
 
 #ifdef SWIG
-%shared_ptr(tesseract_planning::MMMOPlannerPlanProfile)
+%shared_ptr(tesseract_planning::MMMOPlanProfile)
 #endif  // SWIG
 
 namespace tesseract_planning
 {
-struct MapInfo
-{
-  int map_x;
-  int map_y;
-  double step_size;
-  int grid_size_x;
-  int grid_size_y;
 
-  MapInfo(int x = 15, int y = 15, double step = 0.4) : map_x(x), map_y(y), step_size(step)
-  {
-    grid_size_x = int(map_x / step_size) + 1;
-    grid_size_y = int(map_y / step_size) + 1;
-  }
-};
-
-class MMMOPlannerPlanProfile : public MMMOPlanProfile
+class MMMOPlanProfile
 {
 public:
-  using Ptr = std::shared_ptr<MMMOPlannerPlanProfile>;
-  using ConstPtr = std::shared_ptr<const MMMOPlannerPlanProfile>;
+  using Ptr = std::shared_ptr<MMMOPlanProfile>;
+  using ConstPtr = std::shared_ptr<const MMMOPlanProfile>;
 
   /**
-   * @brief MMMOPlannerPlanProfile
+   * @brief MMMOPlanProfile
    * @param state_longest_valid_segment_length The maximum joint distance (norm of changes to all joint positions)
    *between successive steps
    * @param translation_longest_valid_segment_length The maximum translation distance between successive steps
    * @param rotation_longest_valid_segment_length The maximum rotational distance between successive steps
    * @param min_steps The minimum number of steps for the plan
    */
-  // MMMOPlannerPlanProfile(MapInfo& map,
-  //                        int min_steps = 30,
-  //                        double state_longest_valid_segment_length = 5 * M_PI / 180,
-  //                        double translation_longest_valid_segment_length = 0.1,
-  //                        double rotation_longest_valid_segment_length = 5 * M_PI / 180);
 
-  MMMOPlannerPlanProfile(int min_steps = 30,
-                         double state_longest_valid_segment_length = 5 * M_PI / 180,
-                         double translation_longest_valid_segment_length = 0.1,
-                         double rotation_longest_valid_segment_length = 5 * M_PI / 180);
+  MMMOPlanProfile() = default;
+  virtual ~MMMOPlanProfile() = default;
 
-  CompositeInstruction generate(const PlanInstruction& prev_instruction,
-                                const MoveInstruction& prev_seed,
-                                const PlanInstruction& base_instruction,
-                                const Instruction& next_instruction,
-                                const PlannerRequest& request,
-                                const ManipulatorInfo& global_manip_info) const override;
+  virtual CompositeInstruction generate(const PlanInstruction& prev_instruction,
+                                        const MoveInstruction& prev_seed,
+                                        const PlanInstruction& base_instruction,
+                                        const Instruction& next_instruction,
+                                        const PlannerRequest& request,
+                                        const ManipulatorInfo& global_manip_info) const = 0;
 
-  void setMapInfo(int x, int y, double resolution) { map_ = MapInfo(x, y, resolution); }
+  void setBaseJoint(std::pair<std::string, std::string> base_joint) { base_joint_ = base_joint; }
+
+  void clearBaseJoint() { base_joint_ = std::make_pair("", ""); }
 
   /** @brief The maximum joint distance, the norm of changes to all joint positions between successive steps. */
   double state_longest_valid_segment_length;
@@ -101,15 +81,10 @@ public:
   /** @brief The maximum rotational distance between successive steps */
   double rotation_longest_valid_segment_length;
 
-  /** @brief The minimum number of steps for the plan */
-  int min_steps;
-
-  Eigen::VectorXd cost_coeff = Eigen::VectorXd();
-
 protected:
-  CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
-                                               const KinematicGroupInstructionInfo& base,
-                                               const PlannerRequest& request) const override;
+  virtual CompositeInstruction stateJointMixedWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                       const KinematicGroupInstructionInfo& base,
+                                                       const PlannerRequest& request) const = 0;
 
   /**
    * @brief JointWaypoint to JointWaypoint
@@ -126,9 +101,9 @@ protected:
    *
    * @return A composite instruction of move instruction with state waypoints
    **/
-  CompositeInstruction stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
-                                               const KinematicGroupInstructionInfo& base,
-                                               const PlannerRequest& request) const override;
+  virtual CompositeInstruction stateJointJointWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                       const KinematicGroupInstructionInfo& base,
+                                                       const PlannerRequest& request) const = 0;
 
   /**
    * @brief JointWaypoint to CartesianWaypoint
@@ -147,9 +122,9 @@ protected:
    *
    * @return A composite instruction of move instruction with state waypoints
    **/
-  CompositeInstruction stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
-                                              const KinematicGroupInstructionInfo& base,
-                                              const PlannerRequest& request) const override;
+  virtual CompositeInstruction stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                      const KinematicGroupInstructionInfo& base,
+                                                      const PlannerRequest& request) const = 0;
 
   /**
    * @brief CartesianWaypoint to JointWaypoint
@@ -170,8 +145,8 @@ protected:
    *
    * @return A composite instruction of move instruction with state waypoints
    **/
-  CompositeInstruction stateCartJointWaypoint(const KinematicGroupInstructionInfo& prev,
-                                              const KinematicGroupInstructionInfo& base) const override;
+  virtual CompositeInstruction stateCartJointWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                      const KinematicGroupInstructionInfo& base) const = 0;
 
   /**
    * @brief CartesianWaypoint to CartesianWaypoint
@@ -196,23 +171,11 @@ protected:
    *
    * @return A composite instruction of move instruction with state waypoints
    **/
-  CompositeInstruction stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
-                                             const KinematicGroupInstructionInfo& base,
-                                             const PlannerRequest& request) const override;
+  virtual CompositeInstruction stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
+                                                     const KinematicGroupInstructionInfo& base,
+                                                     const PlannerRequest& request) const = 0;
 
-  Eigen::MatrixXd getJointJointSeed(const Eigen::VectorXd& joint_start,
-                                    const Eigen::VectorXd& joint_target,
-                                    const PlannerRequest& request,
-                                    tesseract_kinematics::KinematicGroup::Ptr kin_group) const;
-
-  void initBaseTrajectory_(tesseract_kinematics::KinematicGroup::Ptr kin_group,
-                           tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
-                           const Eigen::VectorXd& joint_start,
-                           const Eigen::VectorXd& joint_target,
-                           std::vector<Eigen::Isometry3d>& base_poses,
-                           int steps) const;
-
-  MapInfo map_;
+  std::pair<std::string, std::string> base_joint_;
 };
 
 }  // namespace tesseract_planning

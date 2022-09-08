@@ -214,6 +214,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,
                                                     tesseract_kinematics::IKSolutions ik_input)
 {
+  CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
   tesseract_kinematics::IKSolutions result;
   // check collision
   tesseract_collision::ContactResultMap contact_result;
@@ -246,6 +247,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result");
     result.push_back(best_solution);
   }
+  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", ik_input.size(), result.size());
 
   return result;
 }
