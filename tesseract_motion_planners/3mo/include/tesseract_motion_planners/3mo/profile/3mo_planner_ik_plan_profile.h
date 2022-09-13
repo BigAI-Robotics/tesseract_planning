@@ -192,6 +192,11 @@ protected:
                                              const PlannerRequest& request) const override;
 };
 
+Eigen::VectorXd getIKStep(tesseract_environment::Environment::Ptr env,
+                          tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                          Eigen::Isometry3d ee_target,
+                          int retry_count = 200);
+
 }  // namespace tesseract_planning
 
 #endif  // TESSERACT_MOTION_PLANNERS_SIMPLE_LVS_PLAN_PROFILE_H

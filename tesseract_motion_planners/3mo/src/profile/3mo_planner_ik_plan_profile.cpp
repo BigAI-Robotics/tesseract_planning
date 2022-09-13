@@ -80,8 +80,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointMixedWaypoint(const Kin
   ss << j1.transpose();
   CONSOLE_BRIDGE_logDebug("prev state: %s", ss.str().c_str());
 
-  // calculate possible iks with heuristic
-  auto cloned_env = request.env->clone();
+  tesseract_environment::Environment::Ptr cloned_env = request.env->clone();
   tesseract_kinematics::KinematicGroup::Ptr kin_group = std::move(cloned_env->getKinematicGroup(prev.manip->getName()));
   MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
 
@@ -99,48 +98,47 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointMixedWaypoint(const Kin
     jt.second = jt_.second;
   }
   auto current_joint_value = cloned_env->getState().joints.at(jt.first);
-  auto joint_names = kin_group->getJointNames();  // joint names with target joint
-  joint_names.push_back(jt.first);
+  auto joint_names = kin_group->getJointNames();
+  joint_names.push_back(jt.first);  // joint names with target joint
   Eigen::MatrixXd result(joint_names.size(), min_steps + 1);
   result.row(joint_names.size() - 1) = Eigen::VectorXd::LinSpaced(min_steps + 1, current_joint_value, jt.second);
-  for (int i = 0; i < min_steps + 1; ++i)
+  result.col(0) = cloned_env->getCurrentJointValues(joint_names);
+  for (int i = 1; i < min_steps + 1; ++i)
   {
-    Eigen::VectorXd ik_seed = cloned_env->getCurrentJointValues(kin_group->getJointNames());
-    Eigen::VectorXd joint_value;
-    joint_value.resize(1);
-    joint_value(0) = result.row(joint_names.size() - 1)(i);
-    cloned_env->setState({ jt.first }, joint_value);
-    auto ee_target = cloned_env->getLinkTransform(attach_location_link) * local_joint_origin_transform;
-    tesseract_kinematics::KinGroupIKInput ik_input(ee_target, "world", "robotiq_arg2f_base_link");
+    int seg = 10;  // segments between two steps
     Eigen::VectorXd ik_result;
-    for (int tries = 0; tries < 200; tries++)
+
+    double joint_target_value = result.row(joint_names.size() - 1)(i);
+    double joint_target_diff = joint_target_value - result.row(joint_names.size() - 1)(i - 1);
+    int j = 0;
+    Eigen::VectorXd jt_vector;
+    jt_vector.resize(1);
+    for (; j < seg; j++)
     {
-      auto res = kin_group->calcInvKin({ ik_input }, ik_seed);
-      tesseract_collision::ContactResultMap contact_results;
-      if (!res.size())
-        continue;
-      for (auto const& ik : res)
+      jt_vector(0) = joint_target_value - j * joint_target_diff / seg;
+      cloned_env->setState({ jt.first }, jt_vector);
+      auto ee_target = cloned_env->getLinkTransform(attach_location_link) * local_joint_origin_transform;
+      try
       {
-        cloned_env->setState(kin_group->getJointNames(), ik);
-        cloned_env->getDiscreteContactManager()->contactTest(contact_results,
-                                                             tesseract_collision::ContactTestType::ALL);
-        if (contact_results.size())
-        {
-          continue;
-        }
-        ik_result = ik;
+        ik_result = getIKStep(cloned_env, kin_group, ee_target, 400);
         break;
       }
-      if (!ik_result.size())
-        continue;
-      break;
+      catch (const std::exception& e)
+      {
+        CONSOLE_BRIDGE_logDebug("solve ik for step %d with %d/%d decrease failed", i, j, seg);
+      }
     }
     if (!ik_result.size())
-      throw std::runtime_error("cannot find valid ik when generating ik path.");
+    {
+      CONSOLE_BRIDGE_logError("find ik solution for step %d failed", i);
+      throw std::runtime_error("cannot find valid ik solution");
+    }
+
     for (int j = 0; j < joint_names.size() - 1; ++j)
     {
       result.col(i)(j) = ik_result(j);
     }
+    result.col(i)(joint_names.size() - 1) = double(jt_vector(0));
   }
   // put ik result into xxx
   std::cout << "ik: " << result << std::endl;
@@ -309,5 +307,41 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartCartWaypoint(const Kinem
 
   // Convert to MoveInstructions
   return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+}
+
+Eigen::VectorXd getIKStep(tesseract_environment::Environment::Ptr env,
+                          tesseract_kinematics::KinematicGroup::Ptr kin_group,
+                          Eigen::Isometry3d ee_target,
+                          int retry_count)
+{
+  Eigen::VectorXd ik_seed = env->getCurrentJointValues(kin_group->getJointNames());
+
+  tesseract_kinematics::KinGroupIKInput ik_input(ee_target, "world", "robotiq_arg2f_base_link");
+  Eigen::VectorXd ik_result;
+  for (int tries = 0; tries < retry_count; tries++)
+  {
+    auto res = kin_group->calcInvKin({ ik_input }, ik_seed);
+    tesseract_collision::ContactResultMap contact_results;
+    if (!res.size())
+      continue;
+    for (auto const& ik : res)
+    {
+      env->setState(kin_group->getJointNames(), ik);
+      env->getDiscreteContactManager()->contactTest(contact_results, tesseract_collision::ContactTestType::ALL);
+      if (contact_results.size())
+      {
+        continue;
+      }
+      ik_result = ik;
+      break;
+    }
+    if (!ik_result.size())
+      continue;
+    break;
+  }
+  if (!ik_result.size())
+    throw std::runtime_error("cannot find valid ik when generating ik path.");
+
+  return ik_result;
 }
 }  // namespace tesseract_planning
