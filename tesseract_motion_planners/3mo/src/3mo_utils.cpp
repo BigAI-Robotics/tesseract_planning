@@ -245,6 +245,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
   tesseract_kinematics::IKSolutions result;
   // check collision
   tesseract_collision::ContactResultMap contact_result;
+  tesseract_collision::ContactResultMap best_contact_result;
   tesseract_collision::DiscreteContactManager::Ptr contact_manager = env->getDiscreteContactManager()->clone();
   size_t best_collision_count = 1000;
   Eigen::VectorXd best_solution = ik_input.at(0);
@@ -262,6 +263,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     {
       best_collision_count = contact_result.size();
       best_solution = ik;
+      best_contact_result = contact_result;
       if (contact_result.size() == 0)
       {
         result.push_back(ik);
@@ -271,7 +273,12 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
 
   if (result.empty())
   {
-    CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result");
+    CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result. best collision count: %d",
+                           best_collision_count);
+    for (auto& collision : best_contact_result)
+    {
+      std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+    }
     result.push_back(best_solution);
   }
   CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", ik_input.size(), result.size());
