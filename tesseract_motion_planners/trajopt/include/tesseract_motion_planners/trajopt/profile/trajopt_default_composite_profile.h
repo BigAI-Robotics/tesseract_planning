@@ -37,10 +37,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/trajopt/trajopt_collision_config.h>
 #include <tesseract_motion_planners/trajopt/profile/trajopt_profile.h>
 
-#ifdef SWIG
-%shared_ptr(tesseract_planning::TrajOptDefaultCompositeProfile)
-#endif  // SWIG
-
 namespace tesseract_planning
 {
 class TrajOptDefaultCompositeProfile : public TrajOptCompositeProfile
@@ -66,15 +62,15 @@ public:
   /** @brief If true, a joint velocity cost with a target of 0 will be applied for all timesteps Default: true*/
   bool smooth_velocities = true;
   /** @brief This default to all ones, but allows you to weight different joints */
-  Eigen::VectorXd velocity_coeff;
+  Eigen::VectorXd velocity_coeff{};
   /** @brief If true, a joint acceleration cost with a target of 0 will be applied for all timesteps Default: false*/
   bool smooth_accelerations = true;
   /** @brief This default to all ones, but allows you to weight different joints */
-  Eigen::VectorXd acceleration_coeff;
+  Eigen::VectorXd acceleration_coeff{};
   /** @brief If true, a joint jerk cost with a target of 0 will be applied for all timesteps Default: false*/
   bool smooth_jerks = true;
   /** @brief This default to all ones, but allows you to weight different joints */
-  Eigen::VectorXd jerk_coeff;
+  Eigen::VectorXd jerk_coeff{};
   /** @brief If true, applies a cost to avoid kinematic singularities */
   bool avoid_singularity = false;
   /** @brief Optimization weight associated with kinematic singularity avoidance */
@@ -105,7 +101,7 @@ public:
   void apply(trajopt::ProblemConstructionInfo& pci,
              int start_index,
              int end_index,
-             const ManipulatorInfo& manip_info,
+             const tesseract_common::ManipulatorInfo& manip_info,
              const std::vector<std::string>& active_links,
              const std::vector<int>& fixed_indices) const override;
 

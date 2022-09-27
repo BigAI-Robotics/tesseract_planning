@@ -31,7 +31,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <string>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/core/instruction.h>
+#include <tesseract_command_language/poly/instruction_poly.h>
 
 namespace tesseract_planning
 {
@@ -122,10 +122,6 @@ private:
 };
 }  // namespace tesseract_planning
 
-#ifdef SWIG
-%tesseract_command_language_add_instruction_type(TimerInstruction)
-#else
 TESSERACT_INSTRUCTION_EXPORT_KEY(tesseract_planning, TimerInstruction);
-#endif  // SWIG
 
 #endif  // TESSERACT_COMMAND_LANGUAGE_TIMER_INSTRUCTION_H

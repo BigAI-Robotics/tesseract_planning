@@ -35,17 +35,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/core/planner.h>
 #include <tesseract_motion_planners/ompl/profile/ompl_profile.h>
 
-#ifdef SWIG
-%shared_ptr(tesseract_planning::OMPLMotionPlanner)
-#endif  // SWIG
-
-namespace ompl
-{
-namespace tools
+namespace ompl::tools
 {
 class ParallelPlan;
-}
-}  // namespace ompl
+}  // namespace ompl::tools
 
 namespace tesseract_planning
 {

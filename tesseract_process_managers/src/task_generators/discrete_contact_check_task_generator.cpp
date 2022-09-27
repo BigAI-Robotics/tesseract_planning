@@ -57,8 +57,8 @@ int DiscreteContactCheckTaskGenerator::conditionalProcess(TaskInput input, std::
   // --------------------
   // Check that inputs are valid
   // --------------------
-  Instruction* input_result = input.getResults();
-  if (!isCompositeInstruction(*input_result))
+  InstructionPoly* input_result = input.getResults();
+  if (!input_result->isCompositeInstruction())
   {
     info->message = "Input seed to DiscreteContactCheckTaskGenerator must be a composite instruction";
     CONSOLE_BRIDGE_logError("%s", info->message.c_str());
@@ -74,7 +74,7 @@ int DiscreteContactCheckTaskGenerator::conditionalProcess(TaskInput input, std::
   profile = getProfileString(name_, profile, input.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<ContactCheckProfile>(name_, profile, *input.profiles, std::make_shared<ContactCheckProfile>());
-  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.profile_overrides);
+  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   // Get state solver
   tesseract_kinematics::JointGroup::UPtr manip = input.env->getJointGroup(input.manip_info.manipulator);

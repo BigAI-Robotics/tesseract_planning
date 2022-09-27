@@ -39,17 +39,20 @@
 #include <tesseract_process_managers/task_generators/seed_min_length_task_generator.h>
 #include <tesseract_process_managers/task_generators/discrete_contact_check_task_generator.h>
 #include <tesseract_process_managers/task_generators/iterative_spline_parameterization_task_generator.h>
+#include <tesseract_process_managers/task_generators/ruckig_trajectory_smoothing_task_generator.h>
 #include <tesseract_process_managers/task_generators/check_input_task_generator.h>
 
 #include <tesseract_motion_planners/simple/simple_motion_planner.h>
 #include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
+#ifdef TESSERACT_PROCESS_MANAGERS_HAS_TRAJOPT_IFOPT
 #include <tesseract_motion_planners/trajopt_ifopt/trajopt_ifopt_motion_planner.h>
+#endif
 #include <tesseract_motion_planners/ompl/ompl_motion_planner.h>
 #include <tesseract_motion_planners/descartes/descartes_motion_planner.h>
 
 namespace tesseract_planning
 {
-TaskflowGenerator::UPtr createTrajOptGenerator(bool check_input, bool post_collision_check)
+TaskflowGenerator::UPtr createTrajOptGenerator(bool check_input, bool post_collision_check, bool post_smoothing)
 {
   auto tf = std::make_unique<GraphTaskflow>("TrajOptTaskflow");
 
@@ -81,6 +84,11 @@ TaskflowGenerator::UPtr createTrajOptGenerator(bool check_input, bool post_colli
   // Setup time parameterization
   int time_parameterization_task = tf->addNode(std::make_unique<IterativeSplineParameterizationTaskGenerator>(), true);
 
+  // Setup trajectory smoothing
+  int smoothing_task{ std::numeric_limits<int>::min() };
+  if (post_smoothing)
+    smoothing_task = tf->addNode(std::make_unique<RuckigTrajectorySmoothingTaskGenerator>(), true);
+
   if (check_input)
     tf->addEdges(check_input_task, { GraphTaskflow::ERROR_NODE, has_seed_task });
 
@@ -98,12 +106,21 @@ TaskflowGenerator::UPtr createTrajOptGenerator(bool check_input, bool post_colli
     tf->addEdges(motion_planner_task, { GraphTaskflow::ERROR_NODE, time_parameterization_task });
   }
 
-  tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  if (post_smoothing)
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, smoothing_task });
+    tf->addEdges(smoothing_task, { GraphTaskflow::DONE_NODE });
+  }
+  else
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  }
 
   return tf;
 }
 
-TaskflowGenerator::UPtr createTrajOptIfoptGenerator(bool check_input, bool post_collision_check)
+#ifdef TESSERACT_PROCESS_MANAGERS_HAS_TRAJOPT_IFOPT
+TaskflowGenerator::UPtr createTrajOptIfoptGenerator(bool check_input, bool post_collision_check, bool post_smoothing)
 {
   auto tf = std::make_unique<GraphTaskflow>("TrajOptIfoptTaskflow");
 
@@ -135,6 +152,11 @@ TaskflowGenerator::UPtr createTrajOptIfoptGenerator(bool check_input, bool post_
   // Setup time parameterization
   int time_parameterization_task = tf->addNode(std::make_unique<IterativeSplineParameterizationTaskGenerator>(), true);
 
+  // Setup trajectory smoothing
+  int smoothing_task{ std::numeric_limits<int>::min() };
+  if (post_smoothing)
+    smoothing_task = tf->addNode(std::make_unique<RuckigTrajectorySmoothingTaskGenerator>(), true);
+
   if (check_input)
     tf->addEdges(check_input_task, { GraphTaskflow::ERROR_NODE, has_seed_task });
 
@@ -152,12 +174,21 @@ TaskflowGenerator::UPtr createTrajOptIfoptGenerator(bool check_input, bool post_
     tf->addEdges(motion_planner_task, { GraphTaskflow::ERROR_NODE, time_parameterization_task });
   }
 
-  tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  if (post_smoothing)
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, smoothing_task });
+    tf->addEdges(smoothing_task, { GraphTaskflow::DONE_NODE });
+  }
+  else
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  }
 
   return tf;
 }
+#endif
 
-TaskflowGenerator::UPtr createOMPLGenerator(bool check_input, bool post_collision_check)
+TaskflowGenerator::UPtr createOMPLGenerator(bool check_input, bool post_collision_check, bool post_smoothing)
 {
   auto tf = std::make_unique<GraphTaskflow>("OMPLTaskflow");
 
@@ -189,6 +220,11 @@ TaskflowGenerator::UPtr createOMPLGenerator(bool check_input, bool post_collisio
   // Setup time parameterization
   int time_parameterization_task = tf->addNode(std::make_unique<IterativeSplineParameterizationTaskGenerator>(), true);
 
+  // Setup trajectory smoothing
+  int smoothing_task{ std::numeric_limits<int>::min() };
+  if (post_smoothing)
+    smoothing_task = tf->addNode(std::make_unique<RuckigTrajectorySmoothingTaskGenerator>(), true);
+
   if (check_input)
     tf->addEdges(check_input_task, { GraphTaskflow::ERROR_NODE, has_seed_task });
 
@@ -206,12 +242,20 @@ TaskflowGenerator::UPtr createOMPLGenerator(bool check_input, bool post_collisio
     tf->addEdges(motion_planner_task, { GraphTaskflow::ERROR_NODE, time_parameterization_task });
   }
 
-  tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  if (post_smoothing)
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, smoothing_task });
+    tf->addEdges(smoothing_task, { GraphTaskflow::DONE_NODE });
+  }
+  else
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  }
 
   return tf;
 }
 
-TaskflowGenerator::UPtr createDescartesGenerator(bool check_input, bool post_collision_check)
+TaskflowGenerator::UPtr createDescartesGenerator(bool check_input, bool post_collision_check, bool post_smoothing)
 {
   auto tf = std::make_unique<GraphTaskflow>("DescartesTaskflow");
 
@@ -243,6 +287,11 @@ TaskflowGenerator::UPtr createDescartesGenerator(bool check_input, bool post_col
   // Setup time parameterization
   int time_parameterization_task = tf->addNode(std::make_unique<IterativeSplineParameterizationTaskGenerator>(), true);
 
+  // Setup trajectory smoothing
+  int smoothing_task{ std::numeric_limits<int>::min() };
+  if (post_smoothing)
+    smoothing_task = tf->addNode(std::make_unique<RuckigTrajectorySmoothingTaskGenerator>(), true);
+
   if (check_input)
     tf->addEdges(check_input_task, { GraphTaskflow::ERROR_NODE, has_seed_task });
 
@@ -260,7 +309,15 @@ TaskflowGenerator::UPtr createDescartesGenerator(bool check_input, bool post_col
     tf->addEdges(motion_planner_task, { GraphTaskflow::ERROR_NODE, time_parameterization_task });
   }
 
-  tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  if (post_smoothing)
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, smoothing_task });
+    tf->addEdges(smoothing_task, { GraphTaskflow::DONE_NODE });
+  }
+  else
+  {
+    tf->addEdges(time_parameterization_task, { GraphTaskflow::ERROR_NODE, GraphTaskflow::DONE_NODE });
+  }
 
   return tf;
 }

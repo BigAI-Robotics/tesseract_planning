@@ -37,16 +37,15 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_environment/environment.h>
 
-#ifdef SWIG
-%shared_ptr(tesseract_planning::DescartesProblem<double>)
-%shared_ptr(DescartesProblemD)
-#endif  // SWIG
-
 namespace tesseract_planning
 {
 template <typename FloatType>
 struct DescartesProblem
 {
+  // LCOV_EXCL_START
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  // LCOV_EXCL_STOP
+
   // These are required for Tesseract to configure Descartes
   tesseract_environment::Environment::ConstPtr env;
   tesseract_scene_graph::SceneState env_state;
@@ -55,18 +54,14 @@ struct DescartesProblem
   tesseract_kinematics::KinematicGroup::ConstPtr manip;
 
   // These are required for descartes
-  std::vector<typename descartes_light::EdgeEvaluator<FloatType>::ConstPtr> edge_evaluators;
-  std::vector<typename descartes_light::WaypointSampler<FloatType>::ConstPtr> samplers;
-  std::vector<typename descartes_light::StateEvaluator<FloatType>::ConstPtr> state_evaluators;
+  std::vector<typename descartes_light::EdgeEvaluator<FloatType>::ConstPtr> edge_evaluators{};
+  std::vector<typename descartes_light::WaypointSampler<FloatType>::ConstPtr> samplers{};
+  std::vector<typename descartes_light::StateEvaluator<FloatType>::ConstPtr> state_evaluators{};
   int num_threads = static_cast<int>(std::thread::hardware_concurrency());
 };
 using DescartesProblemF = DescartesProblem<float>;
 using DescartesProblemD = DescartesProblem<double>;
 
 }  // namespace tesseract_planning
-
-#ifdef SWIG
-%template(DescartesProblemD) tesseract_planning::DescartesProblem<double>;
-#endif  // SWIG
 
 #endif  // TESSERACT_MOTION_PLANNERS_DESCARTES_PROBLEM_H

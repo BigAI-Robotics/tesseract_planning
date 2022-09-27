@@ -34,10 +34,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/simple/profile/simple_planner_profile.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
 
-#ifdef SWIG
-%shared_ptr(tesseract_planning::SimplePlannerFixedSizePlanProfile)
-#endif  // SWIG
-
 namespace tesseract_planning
 {
 class SimplePlannerFixedSizePlanProfile : public SimplePlannerPlanProfile
@@ -53,12 +49,12 @@ public:
    */
   SimplePlannerFixedSizePlanProfile(int freespace_steps = 10, int linear_steps = 10);
 
-  CompositeInstruction generate(const PlanInstruction& prev_instruction,
-                                const MoveInstruction& prev_seed,
-                                const PlanInstruction& base_instruction,
-                                const Instruction& next_instruction,
+  CompositeInstruction generate(const MoveInstructionPoly& prev_instruction,
+                                const MoveInstructionPoly& prev_seed,
+                                const MoveInstructionPoly& base_instruction,
+                                const InstructionPoly& next_instruction,
                                 const PlannerRequest& request,
-                                const ManipulatorInfo& global_manip_info) const override;
+                                const tesseract_common::ManipulatorInfo& global_manip_info) const override;
 
   /** @brief The number of steps to use for freespace instruction */
   int freespace_steps;

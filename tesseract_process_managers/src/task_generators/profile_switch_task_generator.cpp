@@ -32,7 +32,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_process_managers/task_generators/profile_switch_task_generator.h>
 #include <tesseract_process_managers/task_profiles/profile_switch_profile.h>
 #include <tesseract_command_language/constants.h>
-#include <tesseract_command_language/utils/utils.h>
+#include <tesseract_command_language/utils.h>
 #include <tesseract_motion_planners/planner_utils.h>
 
 namespace tesseract_planning
@@ -53,8 +53,8 @@ int ProfileSwitchTaskGenerator::conditionalProcess(TaskInput input, std::size_t 
   // --------------------
   // Check that inputs are valid
   // --------------------
-  const Instruction* input_instruction = input.getInstruction();
-  if (!isCompositeInstruction(*input_instruction))
+  const InstructionPoly* input_instruction = input.getInstruction();
+  if (!input_instruction->isCompositeInstruction())
   {
     CONSOLE_BRIDGE_logError("Input instruction to ProfileSwitch must be a composite instruction. Returning 0");
     saveOutputs(*info, input);
@@ -69,7 +69,7 @@ int ProfileSwitchTaskGenerator::conditionalProcess(TaskInput input, std::size_t 
   profile = getProfileString(name_, profile, input.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<ProfileSwitchProfile>(name_, profile, *input.profiles, std::make_shared<ProfileSwitchProfile>());
-  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.profile_overrides);
+  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   // Return the value specified in the profile
   CONSOLE_BRIDGE_logDebug("ProfileSwitchProfile returning %d", cur_composite_profile->return_value);

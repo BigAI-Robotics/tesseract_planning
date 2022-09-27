@@ -34,12 +34,13 @@ SimplePlannerFixedSizePlanProfile::SimplePlannerFixedSizePlanProfile(int freespa
 {
 }
 
-CompositeInstruction SimplePlannerFixedSizePlanProfile::generate(const PlanInstruction& prev_instruction,
-                                                                 const MoveInstruction& /*prev_seed*/,
-                                                                 const PlanInstruction& base_instruction,
-                                                                 const Instruction& /*next_instruction*/,
-                                                                 const PlannerRequest& request,
-                                                                 const ManipulatorInfo& global_manip_info) const
+CompositeInstruction
+SimplePlannerFixedSizePlanProfile::generate(const MoveInstructionPoly& prev_instruction,
+                                            const MoveInstructionPoly& /*prev_seed*/,
+                                            const MoveInstructionPoly& base_instruction,
+                                            const InstructionPoly& /*next_instruction*/,
+                                            const PlannerRequest& request,
+                                            const tesseract_common::ManipulatorInfo& global_manip_info) const
 {
   KinematicGroupInstructionInfo info1(prev_instruction, request, global_manip_info);
   KinematicGroupInstructionInfo info2(base_instruction, request, global_manip_info);
@@ -65,14 +66,14 @@ SimplePlannerFixedSizePlanProfile::stateJointJointWaypoint(const KinematicGroupI
   const Eigen::VectorXd& j2 = base.extractJointPosition();
 
   Eigen::MatrixXd states;
-  if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+  if (base.instruction.isLinear())
   {
     if (linear_steps > 1)
       states = interpolate(j1, j2, linear_steps);
     else
       states = j2.replicate(1, 2);
   }
-  else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+  else if (base.instruction.isFreespace())
   {
     if (freespace_steps > 1)
       states = interpolate(j1, j2, freespace_steps);
@@ -81,7 +82,7 @@ SimplePlannerFixedSizePlanProfile::stateJointJointWaypoint(const KinematicGroupI
   }
   else
   {
-    throw std::runtime_error("stateJointJointWaypointFixedSize: Unsupported PlanInstructionType!");
+    throw std::runtime_error("stateJointJointWaypointFixedSize: Unsupported MoveInstructionType!");
   }
 
   return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
@@ -98,23 +99,23 @@ SimplePlannerFixedSizePlanProfile::stateJointCartWaypoint(const KinematicGroupIn
   Eigen::MatrixXd states;
   if (j2.size() == 0)
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
       states = j1.replicate(1, linear_steps + 1);
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
       states = j1.replicate(1, freespace_steps + 1);
     else
-      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported PlanInstructionType!");
+      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported MoveInstructionType!");
   }
   else
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
     {
       if (linear_steps > 1)
         states = interpolate(j1, j2, linear_steps);
       else
         states = j2.replicate(1, 2);
     }
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
     {
       if (freespace_steps > 1)
         states = interpolate(j1, j2, freespace_steps);
@@ -123,7 +124,7 @@ SimplePlannerFixedSizePlanProfile::stateJointCartWaypoint(const KinematicGroupIn
     }
     else
     {
-      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported PlanInstructionType!");
+      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported MoveInstructionType!");
     }
   }
 
@@ -140,23 +141,23 @@ SimplePlannerFixedSizePlanProfile::stateCartJointWaypoint(const KinematicGroupIn
   Eigen::MatrixXd states;
   if (j1.size() == 0)
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
       states = j2.replicate(1, linear_steps + 1);
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
       states = j2.replicate(1, freespace_steps + 1);
     else
-      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported PlanInstructionType!");
+      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported MoveInstructionType!");
   }
   else
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
     {
       if (linear_steps > 1)
         states = interpolate(j1, j2, linear_steps);
       else
         states = j2.replicate(1, 2);
     }
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
     {
       if (freespace_steps > 1)
         states = interpolate(j1, j2, freespace_steps);
@@ -165,7 +166,7 @@ SimplePlannerFixedSizePlanProfile::stateCartJointWaypoint(const KinematicGroupIn
     }
     else
     {
-      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported PlanInstructionType!");
+      throw std::runtime_error("stateJointCartWaypointFixedSize: Unsupported MoveInstructionType!");
     }
   }
 
@@ -178,7 +179,7 @@ CompositeInstruction SimplePlannerFixedSizePlanProfile::stateCartCartWaypoint(co
 {
   // Get IK seed
   Eigen::VectorXd seed = request.env_state.getJointValues(base.manip->getJointNames());
-  tesseract_common::enforcePositionLimits(seed, base.manip->getLimits().joint_limits);
+  tesseract_common::enforcePositionLimits<double>(seed, base.manip->getLimits().joint_limits);
 
   // Calculate IK for start and end
   std::array<Eigen::VectorXd, 2> sol = getClosestJointSolution(prev, base, seed);
@@ -186,14 +187,14 @@ CompositeInstruction SimplePlannerFixedSizePlanProfile::stateCartCartWaypoint(co
   Eigen::MatrixXd states;
   if (sol[0].size() != 0 && sol[1].size() != 0)
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
     {
       if (linear_steps > 1)
         states = interpolate(sol[0], sol[1], linear_steps);
       else
         states = sol[1].replicate(1, 2);
     }
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
     {
       if (freespace_steps > 1)
         states = interpolate(sol[0], sol[1], freespace_steps);
@@ -202,35 +203,35 @@ CompositeInstruction SimplePlannerFixedSizePlanProfile::stateCartCartWaypoint(co
     }
     else
     {
-      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported PlanInstructionType!");
+      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported MoveInstructionType!");
     }
   }
   else if (sol[0].size() != 0)
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
       states = sol[0].replicate(1, linear_steps + 1);
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
       states = sol[0].replicate(1, freespace_steps + 1);
     else
-      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported PlanInstructionType!");
+      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported MoveInstructionType!");
   }
   else if (sol[1].size() != 0)
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
       states = sol[1].replicate(1, linear_steps + 1);
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
       states = sol[1].replicate(1, freespace_steps + 1);
     else
-      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported PlanInstructionType!");
+      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported MoveInstructionType!");
   }
   else
   {
-    if (base.instruction.getPlanType() == PlanInstructionType::LINEAR)
+    if (base.instruction.isLinear())
       states = seed.replicate(1, linear_steps + 1);
-    else if (base.instruction.getPlanType() == PlanInstructionType::FREESPACE)
+    else if (base.instruction.isFreespace())
       states = seed.replicate(1, freespace_steps + 1);
     else
-      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported PlanInstructionType!");
+      throw std::runtime_error("SimplePlannerFixedSizePlanProfile: Unsupported MoveInstructionType!");
   }
 
   // Convert to MoveInstructions

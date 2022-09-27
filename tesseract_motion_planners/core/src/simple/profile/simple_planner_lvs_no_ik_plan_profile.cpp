@@ -42,12 +42,13 @@ SimplePlannerLVSNoIKPlanProfile::SimplePlannerLVSNoIKPlanProfile(double state_lo
 {
 }
 
-CompositeInstruction SimplePlannerLVSNoIKPlanProfile::generate(const PlanInstruction& prev_instruction,
-                                                               const MoveInstruction& /*prev_seed*/,
-                                                               const PlanInstruction& base_instruction,
-                                                               const Instruction& /*next_instruction*/,
-                                                               const PlannerRequest& request,
-                                                               const ManipulatorInfo& global_manip_info) const
+CompositeInstruction
+SimplePlannerLVSNoIKPlanProfile::generate(const MoveInstructionPoly& prev_instruction,
+                                          const MoveInstructionPoly& /*prev_seed*/,
+                                          const MoveInstructionPoly& base_instruction,
+                                          const InstructionPoly& /*next_instruction*/,
+                                          const PlannerRequest& request,
+                                          const tesseract_common::ManipulatorInfo& global_manip_info) const
 {
   JointGroupInstructionInfo info1(prev_instruction, request, global_manip_info);
   JointGroupInstructionInfo info2(base_instruction, request, global_manip_info);
@@ -153,7 +154,7 @@ CompositeInstruction SimplePlannerLVSNoIKPlanProfile::stateCartCartWaypoint(cons
 {
   // Get IK seed
   Eigen::VectorXd seed = request.env_state.getJointValues(base.manip->getJointNames());
-  tesseract_common::enforcePositionLimits(seed, base.manip->getLimits().joint_limits);
+  tesseract_common::enforcePositionLimits<double>(seed, base.manip->getLimits().joint_limits);
 
   // Calculate IK for start and end
   Eigen::Isometry3d p1_world = prev.extractCartesianPose();

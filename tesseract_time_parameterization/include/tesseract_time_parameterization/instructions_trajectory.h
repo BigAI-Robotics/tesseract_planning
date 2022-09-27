@@ -32,24 +32,23 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_time_parameterization/trajectory_container.h>
-#include <tesseract_command_language/core/instruction.h>
+#include <tesseract_command_language/poly/instruction_poly.h>
 #include <tesseract_command_language/composite_instruction.h>
-
-#ifdef SWIG
-%shared_ptr(tesseract_planning::InstructionsTrajectory)
-#endif
 
 namespace tesseract_planning
 {
 class InstructionsTrajectory : public TrajectoryContainer
 {
 public:
-  InstructionsTrajectory(std::vector<std::reference_wrapper<Instruction>> trajectory);
+  InstructionsTrajectory(std::vector<std::reference_wrapper<InstructionPoly>> trajectory);
   InstructionsTrajectory(CompositeInstruction& program);
 
   const Eigen::VectorXd& getPosition(Eigen::Index i) const final;
+  Eigen::VectorXd& getPosition(Eigen::Index i) final;
   const Eigen::VectorXd& getVelocity(Eigen::Index i) const final;
+  Eigen::VectorXd& getVelocity(Eigen::Index i) final;
   const Eigen::VectorXd& getAcceleration(Eigen::Index i) const final;
+  Eigen::VectorXd& getAcceleration(Eigen::Index i) final;
   double getTimeFromStart(Eigen::Index i) const final;
 
   void setData(Eigen::Index i, const Eigen::VectorXd& velocity, const Eigen::VectorXd& acceleration, double time) final;
@@ -59,7 +58,7 @@ public:
   bool empty() const final;
 
 private:
-  std::vector<std::reference_wrapper<Instruction>> trajectory_;
+  std::vector<std::reference_wrapper<InstructionPoly>> trajectory_;
   Eigen::Index dof_;
 };
 }  // namespace tesseract_planning

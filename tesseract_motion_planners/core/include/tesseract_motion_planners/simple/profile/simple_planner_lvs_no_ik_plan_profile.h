@@ -35,10 +35,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/simple/profile/simple_planner_profile.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
 
-#ifdef SWIG
-%shared_ptr(tesseract_planning::SimplePlannerLVSNoIKPlanProfile)
-#endif  // SWIG
-
 namespace tesseract_planning
 {
 class SimplePlannerLVSNoIKPlanProfile : public SimplePlannerPlanProfile
@@ -62,12 +58,12 @@ public:
                                   int min_steps = 1,
                                   int max_steps = std::numeric_limits<int>::max());
 
-  CompositeInstruction generate(const PlanInstruction& prev_instruction,
-                                const MoveInstruction& prev_seed,
-                                const PlanInstruction& base_instruction,
-                                const Instruction& next_instruction,
+  CompositeInstruction generate(const MoveInstructionPoly& prev_instruction,
+                                const MoveInstructionPoly& prev_seed,
+                                const MoveInstructionPoly& base_instruction,
+                                const InstructionPoly& next_instruction,
                                 const PlannerRequest& request,
-                                const ManipulatorInfo& global_manip_info) const override;
+                                const tesseract_common::ManipulatorInfo& global_manip_info) const override;
 
   /** @brief The maximum joint distance, the norm of changes to all joint positions between successive steps. */
   double state_longest_valid_segment_length;

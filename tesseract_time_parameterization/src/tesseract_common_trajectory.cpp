@@ -25,9 +25,6 @@
  */
 
 #include <tesseract_time_parameterization/tesseract_common_trajectory.h>
-#include <tesseract_command_language/utils/utils.h>
-#include <tesseract_command_language/state_waypoint.h>
-#include <tesseract_command_language/waypoint_type.h>
 
 namespace tesseract_planning
 {
@@ -45,12 +42,28 @@ const Eigen::VectorXd& TesseractCommonTrajectory::getPosition(Eigen::Index i) co
   // TODO add assert that i<dof_
   return trajectory_.at(static_cast<std::size_t>(i)).position;
 }
+
+Eigen::VectorXd& TesseractCommonTrajectory::getPosition(Eigen::Index i)
+{
+  return trajectory_.at(static_cast<std::size_t>(i)).position;
+}
+
 const Eigen::VectorXd& TesseractCommonTrajectory::getVelocity(Eigen::Index i) const
 {
   return trajectory_.at(static_cast<std::size_t>(i)).velocity;
 }
 
+Eigen::VectorXd& TesseractCommonTrajectory::getVelocity(Eigen::Index i)
+{
+  return trajectory_.at(static_cast<std::size_t>(i)).velocity;
+}
+
 const Eigen::VectorXd& TesseractCommonTrajectory::getAcceleration(Eigen::Index i) const
+{
+  return trajectory_.at(static_cast<std::size_t>(i)).acceleration;
+}
+
+Eigen::VectorXd& TesseractCommonTrajectory::getAcceleration(Eigen::Index i)
 {
   return trajectory_.at(static_cast<std::size_t>(i)).acceleration;
 }

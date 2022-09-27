@@ -45,12 +45,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <list>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/command_language.h>
+#include <tesseract_command_language/composite_instruction.h>
 #include <tesseract_time_parameterization/trajectory_container.h>
-
-#ifdef SWIG
-%shared_ptr(tesseract_planning::TimeOptimalTrajectoryGeneration)
-#endif
 
 namespace tesseract_planning
 {
@@ -79,7 +75,6 @@ private:
   const double min_angle_change_;
 };
 
-#ifndef SWIG
 namespace totg
 {
 class PathSegment
@@ -126,7 +121,7 @@ public:
 
 private:
   PathSegment* getPathSegment(double& s) const;
-  double length_;
+  double length_{ 0 };
   std::list<std::pair<double, bool>> switching_points_;
   std::list<std::unique_ptr<PathSegment>> path_segments_;
 };
@@ -242,7 +237,7 @@ private:
   Eigen::VectorXd max_velocity_;
   Eigen::VectorXd max_acceleration_;
   Eigen::Index joint_num_;
-  bool valid_;
+  bool valid_{ true };
   std::list<TrajectoryStep> trajectory_;
   std::list<TrajectoryStep> end_trajectory_;  // non-empty only if the trajectory generation failed.
 
@@ -252,7 +247,6 @@ private:
   mutable std::list<TrajectoryStep>::const_iterator cached_trajectory_segment_;
 };
 }  // namespace totg
-#endif
 }  // namespace tesseract_planning
 
 #endif

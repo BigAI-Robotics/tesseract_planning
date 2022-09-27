@@ -32,13 +32,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_environment/environment.h>
 #include <tesseract_motion_planners/core/utils.h>
 #include <tesseract_motion_planners/planner_utils.h>
-#include <tesseract_command_language/plan_instruction.h>
 #include <tesseract_support/tesseract_support_resource_locator.h>
 
 using namespace tesseract_planning;
 using namespace tesseract_environment;
-
-bool DEBUG = false;
 
 class TesseractPlanningUtilsUnit : public ::testing::Test
 {

@@ -41,13 +41,13 @@ CheckInputTaskGenerator::CheckInputTaskGenerator(std::string name) : TaskGenerat
 int CheckInputTaskGenerator::conditionalProcess(TaskInput input, std::size_t /*unique_id*/) const
 {
   // Get Composite Profile
-  const Instruction* input_instruction = input.getInstruction();
+  const InstructionPoly* input_instruction = input.getInstruction();
   const auto& ci = input_instruction->as<CompositeInstruction>();
   std::string profile = ci.getProfile();
   profile = getProfileString(name_, profile, input.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<CheckInputProfile>(name_, profile, *input.profiles, std::make_shared<CheckInputProfile>());
-  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.profile_overrides);
+  cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   return ((cur_composite_profile->isValid(input)) ? 1 : 0);
 }

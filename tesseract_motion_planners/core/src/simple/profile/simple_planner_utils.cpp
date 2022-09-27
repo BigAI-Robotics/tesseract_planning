@@ -25,18 +25,18 @@
  */
 
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
-#include <tesseract_command_language/utils/utils.h>
+#include <tesseract_command_language/utils.h>
 #include <tesseract_kinematics/core/utils.h>
 
 namespace tesseract_planning
 {
-JointGroupInstructionInfo::JointGroupInstructionInfo(const PlanInstruction& plan_instruction,
+JointGroupInstructionInfo::JointGroupInstructionInfo(const MoveInstructionPoly& plan_instruction,
                                                      const PlannerRequest& request,
-                                                     const ManipulatorInfo& manip_info)
+                                                     const tesseract_common::ManipulatorInfo& manip_info)
   : instruction(plan_instruction)
 {
   assert(!(manip_info.empty() && plan_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(plan_instruction.getManipulatorInfo());
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(plan_instruction.getManipulatorInfo());
 
   // Check required manipulator information
   if (mi.manipulator.empty())
@@ -57,9 +57,9 @@ JointGroupInstructionInfo::JointGroupInstructionInfo(const PlanInstruction& plan
   tcp_offset = request.env->findTCPOffset(mi);
 
   // Get Previous Instruction Waypoint Info
-  if (isStateWaypoint(plan_instruction.getWaypoint()) || isJointWaypoint(plan_instruction.getWaypoint()))
+  if (plan_instruction.getWaypoint().isStateWaypoint() || plan_instruction.getWaypoint().isJointWaypoint())
     has_cartesian_waypoint = false;
-  else if (isCartesianWaypoint(plan_instruction.getWaypoint()))
+  else if (plan_instruction.getWaypoint().isCartesianWaypoint())
     has_cartesian_waypoint = true;
   else
     throw std::runtime_error("Simple planner currently only supports State, Joint and Cartesian Waypoint types!");
@@ -72,10 +72,10 @@ Eigen::Isometry3d JointGroupInstructionInfo::calcCartesianPose(const Eigen::Vect
 
 Eigen::Isometry3d JointGroupInstructionInfo::extractCartesianPose() const
 {
-  if (!isCartesianWaypoint(instruction.getWaypoint()))
+  if (!instruction.getWaypoint().isCartesianWaypoint())
     throw std::runtime_error("Instruction waypoint type is not a CartesianWaypoint, unable to extract cartesian pose!");
 
-  return instruction.getWaypoint().as<CartesianWaypoint>();
+  return instruction.getWaypoint().as<CartesianWaypointPoly>().getTransform();
 }
 
 const Eigen::VectorXd& JointGroupInstructionInfo::extractJointPosition() const
@@ -83,13 +83,13 @@ const Eigen::VectorXd& JointGroupInstructionInfo::extractJointPosition() const
   return getJointPosition(instruction.getWaypoint());
 }
 
-KinematicGroupInstructionInfo::KinematicGroupInstructionInfo(const PlanInstruction& plan_instruction,
+KinematicGroupInstructionInfo::KinematicGroupInstructionInfo(const MoveInstructionPoly& plan_instruction,
                                                              const PlannerRequest& request,
-                                                             const ManipulatorInfo& manip_info)
+                                                             const tesseract_common::ManipulatorInfo& manip_info)
   : instruction(plan_instruction)
 {
   assert(!(manip_info.empty() && plan_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(plan_instruction.getManipulatorInfo());
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(plan_instruction.getManipulatorInfo());
 
   // Check required manipulator information
   if (mi.manipulator.empty())
@@ -110,9 +110,9 @@ KinematicGroupInstructionInfo::KinematicGroupInstructionInfo(const PlanInstructi
   tcp_offset = request.env->findTCPOffset(mi);
 
   // Get Previous Instruction Waypoint Info
-  if (isStateWaypoint(plan_instruction.getWaypoint()) || isJointWaypoint(plan_instruction.getWaypoint()))
+  if (plan_instruction.getWaypoint().isStateWaypoint() || plan_instruction.getWaypoint().isJointWaypoint())
     has_cartesian_waypoint = false;
-  else if (isCartesianWaypoint(plan_instruction.getWaypoint()))
+  else if (plan_instruction.getWaypoint().isCartesianWaypoint())
     has_cartesian_waypoint = true;
   else if (isMixedWaypoint(plan_instruction.getWaypoint())){
     has_mixed_waypoint = true;
@@ -128,10 +128,10 @@ Eigen::Isometry3d KinematicGroupInstructionInfo::calcCartesianPose(const Eigen::
 
 Eigen::Isometry3d KinematicGroupInstructionInfo::extractCartesianPose() const
 {
-  if (!isCartesianWaypoint(instruction.getWaypoint()))
+  if (!instruction.getWaypoint().isCartesianWaypoint())
     throw std::runtime_error("Instruction waypoint type is not a CartesianWaypoint, unable to extract cartesian pose!");
 
-  return instruction.getWaypoint().as<CartesianWaypoint>();
+  return instruction.getWaypoint().as<CartesianWaypointPoly>().getTransform();
 }
 
 const Eigen::VectorXd& KinematicGroupInstructionInfo::extractJointPosition() const
@@ -141,26 +141,37 @@ const Eigen::VectorXd& KinematicGroupInstructionInfo::extractJointPosition() con
 
 CompositeInstruction getInterpolatedComposite(const std::vector<std::string>& joint_names,
                                               const Eigen::MatrixXd& states,
-                                              const PlanInstruction& base_instruction)
+                                              const MoveInstructionPoly& base_instruction)
 {
   CONSOLE_BRIDGE_logDebug("getting interpolated composite...\r");
   CompositeInstruction composite;
   composite.setManipulatorInfo(base_instruction.getManipulatorInfo());
   composite.setDescription(base_instruction.getDescription());
   composite.setProfile(base_instruction.getProfile());
-  composite.profile_overrides = base_instruction.profile_overrides;
+  composite.setProfileOverrides(base_instruction.getProfileOverrides());
 
   // Convert to MoveInstructions
   for (long i = 1; i < states.cols() - 1; ++i)
   {
-    MoveInstruction move_instruction(StateWaypoint(joint_names, states.col(i)), base_instruction);
+    MoveInstructionPoly move_instruction = base_instruction.createChild();
+    StateWaypointPoly swp = move_instruction.createStateWaypoint();
+    swp.setNames(joint_names);
+    swp.setPosition(states.col(i));
+    move_instruction.assignStateWaypoint(swp);
     move_instruction.setProfile(base_instruction.getPathProfile());
+    move_instruction.setProfileOverrides(base_instruction.getPathProfileOverrides());
     move_instruction.setPathProfile(base_instruction.getPathProfile());
-    composite.push_back(move_instruction);
+    move_instruction.setPathProfileOverrides(base_instruction.getPathProfileOverrides());
+    composite.appendMoveInstruction(move_instruction);
   }
 
-  MoveInstruction move_instruction(StateWaypoint(joint_names, states.col(states.cols() - 1)), base_instruction);
-  composite.push_back(move_instruction);
+  MoveInstructionPoly move_instruction = base_instruction.createChild();
+  StateWaypointPoly swp = move_instruction.createStateWaypoint();
+  swp.setNames(joint_names);
+  swp.setPosition(states.col(states.cols() - 1));
+  move_instruction.assignStateWaypoint(swp);
+  composite.appendMoveInstruction(move_instruction);
+
   return composite;
 }
 
@@ -172,7 +183,8 @@ Eigen::VectorXd getClosestJointSolution(const KinematicGroupInstructionInfo& inf
   if (!info.has_cartesian_waypoint)
     throw std::runtime_error("Instruction waypoint type is not a CartesianWaypoint, unable to extract cartesian pose!");
 
-  Eigen::Isometry3d cwp = info.instruction.getWaypoint().as<CartesianWaypoint>() * info.tcp_offset.inverse();
+  Eigen::Isometry3d cwp =
+      info.instruction.getWaypoint().as<CartesianWaypointPoly>().getTransform() * info.tcp_offset.inverse();
 
   Eigen::VectorXd jp_final;
   tesseract_kinematics::IKSolutions jp;
@@ -192,7 +204,7 @@ Eigen::VectorXd getClosestJointSolution(const KinematicGroupInstructionInfo& inf
     double dist = std::numeric_limits<double>::max();
     for (const auto& solution : jp)
     {
-      if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+      if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
       {
         if (jp_final.rows() == 0)
         {
@@ -228,8 +240,10 @@ std::array<Eigen::VectorXd, 2> getClosestJointSolution(const KinematicGroupInstr
   if (!info1.has_cartesian_waypoint || !info2.has_cartesian_waypoint)
     throw std::runtime_error("Instruction waypoint type is not a CartesianWaypoint, unable to extract cartesian pose!");
 
-  Eigen::Isometry3d cwp1 = info1.instruction.getWaypoint().as<CartesianWaypoint>() * info1.tcp_offset.inverse();
-  Eigen::Isometry3d cwp2 = info2.instruction.getWaypoint().as<CartesianWaypoint>() * info2.tcp_offset.inverse();
+  Eigen::Isometry3d cwp1 =
+      info1.instruction.getWaypoint().as<CartesianWaypointPoly>().getTransform() * info1.tcp_offset.inverse();
+  Eigen::Isometry3d cwp2 =
+      info2.instruction.getWaypoint().as<CartesianWaypointPoly>().getTransform() * info2.tcp_offset.inverse();
 
   std::array<Eigen::VectorXd, 2> results;
 
@@ -241,8 +255,8 @@ std::array<Eigen::VectorXd, 2> getClosestJointSolution(const KinematicGroupInstr
   j1_solutions.erase(std::remove_if(j1_solutions.begin(),
                                     j1_solutions.end(),
                                     [&manip1_limits](const Eigen::VectorXd& solution) {
-                                      return !tesseract_common::satisfiesPositionLimits(solution,
-                                                                                        manip1_limits.joint_limits);
+                                      return !tesseract_common::satisfiesPositionLimits<double>(
+                                          solution, manip1_limits.joint_limits);
                                     }),
                      j1_solutions.end());
 
@@ -262,8 +276,9 @@ std::array<Eigen::VectorXd, 2> getClosestJointSolution(const KinematicGroupInstr
   j2_solutions.erase(std::remove_if(j2_solutions.begin(),
                                     j2_solutions.end(),
                                     [&manip2_limits](const Eigen::VectorXd& solution) {
-                                      return !tesseract_common::satisfiesPositionLimits(solution,
-                                                                                        manip2_limits.joint_limits);
+                                      // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
+                                      return !tesseract_common::satisfiesPositionLimits<double>(
+                                          solution, manip2_limits.joint_limits);
                                     }),
                      j2_solutions.end());
 

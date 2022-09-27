@@ -2,6 +2,18 @@
 Changelog for package tesseract_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.13.1 (2022-08-30)
+-------------------
+
+0.13.0 (2022-08-25)
+-------------------
+* Rename tesseract_command_language core directory to poly
+* Rename Waypoint and Instruction to WaypointPoly and InstructionPoly
+* Add CartesianWaypointPoly, JointWaypointPoly and StateWaypointPoly
+* Refactor using MoveInstructionPoly
+* Remove plan instruction
+* Contributors: Levi Armstrong
+
 0.12.0 (2022-07-07)
 -------------------
 

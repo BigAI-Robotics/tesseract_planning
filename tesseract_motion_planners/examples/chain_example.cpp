@@ -49,7 +49,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_motion_planners/interface_utils.h>
 
 #include <tesseract_visualization/visualization_loader.h>
-#include <tesseract_command_language/utils/utils.h>
+#include <tesseract_command_language/joint_waypoint.h>
+#include <tesseract_command_language/cartesian_waypoint.h>
+#include <tesseract_command_language/move_instruction.h>
+#include <tesseract_command_language/utils.h>
 #include <tesseract_support/tesseract_support_resource_locator.h>
 
 using namespace tesseract_planning;
@@ -76,7 +79,7 @@ int main(int /*argc*/, char** /*argv*/)
       plotter->plotEnvironment(*env);
     }
 
-    ManipulatorInfo manip;
+    tesseract_common::ManipulatorInfo manip;
     manip.tcp_frame = "tool0";
     manip.working_frame = "base_link";
     manip.manipulator = "manipulator";
@@ -87,47 +90,47 @@ int main(int /*argc*/, char** /*argv*/)
     auto cur_state = env->getState();
 
     // Specify start location
-    JointWaypoint wp0(kin_group->getJointNames(), Eigen::VectorXd::Zero(6));
+    JointWaypointPoly wp0{ JointWaypoint(kin_group->getJointNames(), Eigen::VectorXd::Zero(6)) };
 
     // Specify raster 1 start waypoint and end waypoint
-    CartesianWaypoint wp1 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.8, -.20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
-    CartesianWaypoint wp2 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.8, .20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
+    CartesianWaypointPoly wp1{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.8, -.20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
+    CartesianWaypointPoly wp2{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.8, .20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
 
     // Specify raster 2 start waypoint and end waypoint
-    CartesianWaypoint wp3 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.9, -.20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
-    CartesianWaypoint wp4 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.9, .20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
+    CartesianWaypointPoly wp3{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.9, -.20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
+    CartesianWaypointPoly wp4{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.9, .20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
 
     // Specify raster 4 start waypoint and end waypoint
-    CartesianWaypoint wp5 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(1.0, -.20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
-    CartesianWaypoint wp6 =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(1.0, .20, 0.8) * Eigen::Quaterniond(0, 0, -1.0, 0);
+    CartesianWaypointPoly wp5{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(1.0, -.20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
+    CartesianWaypointPoly wp6{ CartesianWaypoint(Eigen::Isometry3d::Identity() * Eigen::Translation3d(1.0, .20, 0.8) *
+                                                 Eigen::Quaterniond(0, 0, -1.0, 0)) };
 
     // Define Plan Instructions
-    PlanInstruction start_instruction(wp0, PlanInstructionType::START);
-    PlanInstruction plan_f1(wp1, PlanInstructionType::FREESPACE, "DEFAULT");
-    PlanInstruction plan_c1(wp2, PlanInstructionType::LINEAR, "DEFAULT");
-    PlanInstruction plan_c2(wp3, PlanInstructionType::LINEAR, "DEFAULT");
-    PlanInstruction plan_c3(wp4, PlanInstructionType::LINEAR, "DEFAULT");
-    PlanInstruction plan_c4(wp5, PlanInstructionType::LINEAR, "DEFAULT");
-    PlanInstruction plan_c5(wp6, PlanInstructionType::LINEAR, "DEFAULT");
-    PlanInstruction plan_f3(wp0, PlanInstructionType::FREESPACE, "DEFAULT");
+    MoveInstruction start_instruction(wp0, MoveInstructionType::START);
+    MoveInstruction plan_f1(wp1, MoveInstructionType::FREESPACE, "DEFAULT");
+    MoveInstruction plan_c1(wp2, MoveInstructionType::LINEAR, "DEFAULT");
+    MoveInstruction plan_c2(wp3, MoveInstructionType::LINEAR, "DEFAULT");
+    MoveInstruction plan_c3(wp4, MoveInstructionType::LINEAR, "DEFAULT");
+    MoveInstruction plan_c4(wp5, MoveInstructionType::LINEAR, "DEFAULT");
+    MoveInstruction plan_c5(wp6, MoveInstructionType::LINEAR, "DEFAULT");
+    MoveInstruction plan_f3(wp0, MoveInstructionType::FREESPACE, "DEFAULT");
 
     // Create program
     CompositeInstruction program;
     program.setStartInstruction(start_instruction);
     program.setManipulatorInfo(manip);
-    program.push_back(plan_f1);
-    program.push_back(plan_c1);
-    program.push_back(plan_c2);
-    program.push_back(plan_c3);
-    program.push_back(plan_c4);
-    program.push_back(plan_c5);
-    program.push_back(plan_f3);
+    program.appendMoveInstruction(plan_f1);
+    program.appendMoveInstruction(plan_c1);
+    program.appendMoveInstruction(plan_c2);
+    program.appendMoveInstruction(plan_c3);
+    program.appendMoveInstruction(plan_c4);
+    program.appendMoveInstruction(plan_c5);
+    program.appendMoveInstruction(plan_f3);
 
     // Plot Program
     if (plotter)

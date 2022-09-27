@@ -36,12 +36,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_process_managers/core/taskflow_container.h>
 #include <tesseract_motion_planners/core/types.h>
 
-#include <tesseract_command_language/core/instruction.h>
-#include <tesseract_command_language/types.h>
-
-#ifdef SWIG
-%shared_ptr(tesseract_planning::ProcessPlanningProblem)
-#endif  // SWIG
+#include <tesseract_command_language/poly/instruction_poly.h>
 
 namespace tesseract_planning
 {
@@ -59,7 +54,6 @@ struct ProcessPlanningProblem
   ProcessPlanningProblem(ProcessPlanningProblem&&) = delete;
   ProcessPlanningProblem& operator=(ProcessPlanningProblem&&) = delete;
 
-#ifndef SWIG
   /** @brief The name of the Process Pipeline (aka. Taskflow) to use */
   std::string name;
 
@@ -67,35 +61,19 @@ struct ProcessPlanningProblem
   tesseract_environment::Environment::ConstPtr env;
 
   /** @brief The stored input to the process */
-  std::unique_ptr<Instruction> input;
+  std::unique_ptr<InstructionPoly> input{ nullptr };
 
   /** @brief The results to the process */
-  std::unique_ptr<Instruction> results;
+  std::unique_ptr<InstructionPoly> results{ nullptr };
 
   /** @brief The stored global manipulator info */
-  std::unique_ptr<const ManipulatorInfo> global_manip_info;
+  std::unique_ptr<const tesseract_common::ManipulatorInfo> global_manip_info{ nullptr };
 
   /** @brief The stored plan profile remapping */
-  std::unique_ptr<const PlannerProfileRemapping> plan_profile_remapping;
+  std::unique_ptr<const PlannerProfileRemapping> plan_profile_remapping{ nullptr };
 
   /** @brief The stored composite profile remapping */
-  std::unique_ptr<const PlannerProfileRemapping> composite_profile_remapping;
-
-#else
-  // clang-format off
-  %extend {
-  Instruction& getInput() { return *$self->input; }
-  Instruction& getResults() { return *$self->results; }
-  ManipulatorInfo getGlobalManipInfo() { return *$self->global_manip_info; }
-  PlannerProfileRemapping getPlanProfileRemapping() { return *$self->plan_profile_remapping; }
-  PlannerProfileRemapping getCompositeProfileRemapping() { return *$self->composite_profile_remapping; }
-  }
-  // clang-format on
-#endif
-
-#ifdef SWIG
-  %ignore taskflow_container;
-#endif  // SWIG
+  std::unique_ptr<const PlannerProfileRemapping> composite_profile_remapping{ nullptr };
 
   /**
    * @brief The taskflow container returned from the TaskflowGenerator that must remain during taskflow execution

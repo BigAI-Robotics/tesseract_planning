@@ -34,7 +34,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_motion_planners/core/types.h>
-#include <tesseract_command_language/core/instruction.h>
+#include <tesseract_command_language/poly/instruction_poly.h>
 #include <tesseract_environment/commands.h>
 
 namespace tesseract_planning
@@ -45,6 +45,10 @@ static const std::string PRIMARY_EXECUTOR_NAME = "primary";
 class ProcessPlanningRequest
 {
 public:
+  // LCOV_EXCL_START
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  // LCOV_EXCL_STOP
+
   /** @brief The name of the executor to use */
   std::string executor_name{ PRIMARY_EXECUTOR_NAME };
 
@@ -52,10 +56,10 @@ public:
   std::string name;
 
   /** @brief  This should an xml string of the command language instructions */
-  Instruction instructions{ NullInstruction() };
+  InstructionPoly instructions;
 
   /** @brief This should an xml string of the command language instructions (Optional) */
-  Instruction seed{ NullInstruction() };
+  InstructionPoly seed;
 
   /** @brief Environment state to start planning with (Optional)  */
   tesseract_scene_graph::SceneState env_state;
@@ -95,8 +99,10 @@ namespace process_planner_names
 /** @brief TrajOpt Planner */
 static const std::string TRAJOPT_PLANNER_NAME = "TrajOptPlanner";
 
+#ifdef TESSERACT_PROCESS_MANAGERS_HAS_TRAJOPT_IFOPT
 /** @brief TrajOpt IFOPT Planner */
 static const std::string TRAJOPT_IFOPT_PLANNER_NAME = "TrajOptIfoptPlanner";
+#endif
 
 /** @brief OMPL Planner */
 static const std::string OMPL_PLANNER_NAME = "OMPLPlanner";

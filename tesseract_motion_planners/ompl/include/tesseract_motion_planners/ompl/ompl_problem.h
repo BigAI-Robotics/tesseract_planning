@@ -34,15 +34,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_motion_planners/ompl/types.h>
 #include <tesseract_motion_planners/ompl/ompl_planner_configurator.h>
 #include <tesseract_environment/environment.h>
 #include <tesseract_kinematics/core/kinematic_group.h>
-
-#ifdef SWIG
-%shared_ptr(tesseract_planning::OMPLProblem)
-%ignore tesseract_planning::OMPLProblem::extractor;
-#endif  // SWIG
+#include <tesseract_motion_planners/ompl/types.h>
 
 namespace tesseract_planning
 {
@@ -75,6 +70,10 @@ struct OMPLProblem
   using ConstPtr = std::shared_ptr<const OMPLProblem>;
   using UPtr = std::unique_ptr<OMPLProblem>;
   using ConstUPtr = std::unique_ptr<const OMPLProblem>;
+
+  // LCOV_EXCL_START
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  // LCOV_EXCL_STOP
 
   // These are required for Tesseract to configure ompl
   tesseract_environment::Environment::ConstPtr env;
@@ -130,12 +129,12 @@ struct OMPLProblem
    *
    * This will create a new thread for each planner configurator provided. T
    */
-  std::vector<OMPLPlannerConfigurator::ConstPtr> planners;
+  std::vector<OMPLPlannerConfigurator::ConstPtr> planners{};
 
   /**
    * @brief This will extract an Eigen::VectorXd from the OMPL State ***REQUIRED***
    */
-  OMPLStateExtractor extractor;
+  OMPLStateExtractor extractor{};
 
   /**
    * @brief Convert the path stored in simple_setup to tesseract trajectory
@@ -146,9 +145,5 @@ struct OMPLProblem
 };
 
 }  // namespace tesseract_planning
-
-#ifdef SWIG
-%template(OMPLProblems) std::vector<std::shared_ptr<tesseract_planning::OMPLProblem>>;
-#endif
 
 #endif  // TESSERACT_MOTION_PLANNERS_OMPL_OMPL_PROBLEM_H

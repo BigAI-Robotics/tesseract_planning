@@ -33,17 +33,9 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <memory>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/core/instruction.h>
-#include <tesseract_command_language/joint_waypoint.h>
-#include <tesseract_command_language/cartesian_waypoint.h>
-#include <tesseract_command_language/mixed_waypoint.h>
-#include <tesseract_command_language/types.h>
-
-#ifdef SWIG
-%shared_ptr(tesseract_planning::TrajOptPlanProfile)
-%shared_ptr(tesseract_planning::TrajOptSolverProfile)
-%shared_ptr(tesseract_planning::TrajOptCompositeProfile)
-#endif  // SWIG
+#include <tesseract_command_language/poly/instruction_poly.h>
+#include <tesseract_command_language/poly/cartesian_waypoint_poly.h>
+#include <tesseract_command_language/poly/joint_waypoint_poly.h>
 
 namespace tesseract_planning
 {
@@ -61,16 +53,16 @@ public:
   TrajOptPlanProfile& operator=(TrajOptPlanProfile&&) = default;
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
-                     const CartesianWaypoint& cartesian_waypoint,
-                     const Instruction& parent_instruction,
-                     const ManipulatorInfo& manip_info,
+                     const CartesianWaypointPoly& cartesian_waypoint,
+                     const InstructionPoly& parent_instruction,
+                     const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index) const = 0;
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
-                     const JointWaypoint& joint_waypoint,
-                     const Instruction& parent_instruction,
-                     const ManipulatorInfo& manip_info,
+                     const JointWaypointPoly& joint_waypoint,
+                     const InstructionPoly& parent_instruction,
+                     const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index) const = 0;
 
@@ -101,7 +93,7 @@ public:
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
                      int start_index,
                      int end_index,
-                     const ManipulatorInfo& manip_info,
+                     const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      const std::vector<int>& fixed_indices) const = 0;
 
@@ -130,14 +122,5 @@ using TrajOptSolverProfileMap = std::unordered_map<std::string, TrajOptSolverPro
 using TrajOptCompositeProfileMap = std::unordered_map<std::string, TrajOptCompositeProfile::ConstPtr>;
 using TrajOptPlanProfileMap = std::unordered_map<std::string, TrajOptPlanProfile::ConstPtr>;
 }  // namespace tesseract_planning
-
-#ifdef SWIG
-%template(TrajOptSolverProfileMap) std::unordered_map<std::string, std::shared_ptr<const tesseract_planning::TrajOptSolverProfile>>;
-%template(TrajOptCompositeProfileMap) std::unordered_map<std::string, std::shared_ptr<const tesseract_planning::TrajOptCompositeProfile>>;
-%template(TrajOptPlanProfileMap) std::unordered_map<std::string, std::shared_ptr<const tesseract_planning::TrajOptPlanProfile>>;
-%tesseract_command_language_add_profile_type(TrajOptSolverProfile);
-%tesseract_command_language_add_profile_type(TrajOptPlanProfile);
-%tesseract_command_language_add_profile_type(TrajOptCompositeProfile);
-#endif  // SWIG
 
 #endif  // TESSERACT_MOTION_PLANNERS_TRAJOPT_PROFILE_H

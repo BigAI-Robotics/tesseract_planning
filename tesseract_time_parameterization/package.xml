@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>tesseract_time_parameterization</name>
-  <version>0.12.0</version>
+  <version>0.13.1</version>
   <description>The Tesseract Time Parameterization package</description>
   <author email="levi.armstrong@swri.org">Levi Armstrong</author>
   <maintainer email="levi.armstrong@swri.org">Levi Armstrong</maintainer>
@@ -13,6 +13,7 @@
   <depend>libconsole-bridge-dev</depend>
   <depend>tesseract_common</depend>
   <depend>tesseract_command_language</depend>
+  <depend>ruckig</depend>
   <build_depend>ros_industrial_cmake_boilerplate</build_depend>
 
   <build_depend>eigen</build_depend>

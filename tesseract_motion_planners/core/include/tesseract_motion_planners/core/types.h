@@ -29,7 +29,8 @@
 #include <tesseract_environment/environment.h>
 #include <tesseract_common/status_code.h>
 #include <tesseract_common/types.h>
-#include <tesseract_command_language/command_language.h>
+#include <tesseract_command_language/poly/instruction_poly.h>
+#include <tesseract_command_language/composite_instruction.h>
 
 namespace tesseract_planning
 {
@@ -44,6 +45,10 @@ using PlannerProfileRemapping = std::unordered_map<std::string, std::unordered_m
 
 struct PlannerRequest
 {
+  // LCOV_EXCL_START
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  // LCOV_EXCL_STOP
+
   /** @brief The name of the process manager to use */
   std::string name;
 
@@ -62,7 +67,7 @@ struct PlannerRequest
    */
   CompositeInstruction instructions;
   /**
-   * @brief This should be a one to one match with the instructions where the PlanInstruction is replaced with a
+   * @brief This should be a one to one match with the instructions where the MoveInstruction is replaced with a
    * CompositeInstruction of MoveInstructions.
    */
   CompositeInstruction seed;
@@ -71,13 +76,13 @@ struct PlannerRequest
    * @brief This allows the remapping of the Plan Profile identified in the command language to a specific profile for a
    * given motion planner.
    */
-  PlannerProfileRemapping plan_profile_remapping;
+  PlannerProfileRemapping plan_profile_remapping{};
 
   /**
    * @brief This allows the remapping of the Composite Profile identified in the command language to a specific profile
    * for a given motion planner.
    */
-  PlannerProfileRemapping composite_profile_remapping;
+  PlannerProfileRemapping composite_profile_remapping{};
 
   /**
    * @brief data Planner specific data. For planners included in Tesseract_planning this is the planner problem that
@@ -88,15 +93,18 @@ struct PlannerRequest
 
 struct PlannerResponse
 {
+  // LCOV_EXCL_START
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  // LCOV_EXCL_STOP
+
   CompositeInstruction results;
-  tesseract_common::StatusCode status;                                     /**< @brief The status information */
-  std::vector<std::reference_wrapper<Instruction>> succeeded_instructions; /**< @brief Waypoints for which the planner
-                                                                        succeeded */
-  std::vector<std::reference_wrapper<Instruction>> failed_instructions;    /**< @brief Waypoints for which the planner
-                                                                              failed */
-  /**
-   * @brief data Planner specific data. For planners included in Tesseract_planning this is the planner problem that was
-   * solved
+  /** @brief The status information */
+  tesseract_common::StatusCode status;
+  /** @brief Waypoints for which the planner succeeded */
+  std::vector<std::reference_wrapper<InstructionPoly>> succeeded_instructions{};
+  /** @brief Waypoints for which the planner failed */
+  std::vector<std::reference_wrapper<InstructionPoly>> failed_instructions{};
+  /** @brief Planner specific data. Planners in Tesseract_planning use this to store the planner problem that was solved
    */
   std::shared_ptr<void> data;
 };
