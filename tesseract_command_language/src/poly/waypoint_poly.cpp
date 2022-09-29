@@ -7,6 +7,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_command_language/poly/cartesian_waypoint_poly.h>
 #include <tesseract_command_language/poly/joint_waypoint_poly.h>
 #include <tesseract_command_language/poly/state_waypoint_poly.h>
+#include <tesseract_command_language/poly/mixed_waypoint_poly.h>
 
 template <class Archive>
 void tesseract_planning::detail_waypoint::WaypointInterface::serialize(Archive& ar,
@@ -31,6 +32,11 @@ bool tesseract_planning::WaypointPoly::isJointWaypoint() const
 bool tesseract_planning::WaypointPoly::isStateWaypoint() const
 {
   return (isNull() ? false : (getInterface().getType() == std::type_index(typeid(StateWaypointPoly))));
+}
+
+bool tesseract_planning::WaypointPoly::isMixedWaypoint() const
+{
+  return (isNull()?false:(getInterface().getType() == std::type_index(typeid(MixedWaypointPoly))));
 }
 
 template <class Archive>

@@ -59,12 +59,12 @@ MMMOPlannerPlanProfile::MMMOPlannerPlanProfile(int min_steps,
   // std::cout << "map step size:" << map_.step_size << std::endl;
 }
 
-CompositeInstruction MMMOPlannerPlanProfile::generate(const PlanInstruction& prev_instruction,
-                                                      const MoveInstruction& /*prev_seed*/,
-                                                      const PlanInstruction& base_instruction,
-                                                      const Instruction& /*next_instruction*/,
+CompositeInstruction MMMOPlannerPlanProfile::generate(const MoveInstructionPoly& prev_instruction,
+                                                      const MoveInstructionPoly& /*prev_seed*/,
+                                                      const MoveInstructionPoly& base_instruction,
+                                                      const InstructionPoly& /*next_instruction*/,
                                                       const PlannerRequest& request,
-                                                      const ManipulatorInfo& global_manip_info) const
+                                                      const tesseract_common::ManipulatorInfo& global_manip_info) const
 {
   KinematicGroupInstructionInfo info1(prev_instruction, request, global_manip_info);
   KinematicGroupInstructionInfo info2(base_instruction, request, global_manip_info);
@@ -96,24 +96,24 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
   // calculate possible iks with heuristic
   tesseract_kinematics::KinematicGroup::Ptr kin_group =
       std::move(request.env->getKinematicGroup(prev.manip->getName()));
-  MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
+  MixedWaypointPoly wp = base.instruction.getWaypoint().as<MixedWaypointPoly>();
 
   Eigen::VectorXd joint_target;
 
-  if (wp.link_targets.empty())
+  if (wp.getLinkTargets().empty())
   {
     // cartesian waypoint not specified, no need to calculate ik
     CONSOLE_BRIDGE_logDebug("no cartesian target specified in mixed waypoint, will not calculate ik");
     joint_target = j1;
-    for (auto& joint : wp.joint_targets_)
+    for (auto& joint : wp.getJointTargets())
     {
-      auto joint_idx = std::find(wp.joint_names.begin(), wp.joint_names.end(), joint.first);
-      if (joint_idx == wp.joint_names.end())
+      auto joint_idx = std::find(wp.getJointNames().begin(), wp.getJointNames().end(), joint.first);
+      if (joint_idx == wp.getJointNames().end())
       {
         CONSOLE_BRIDGE_logError("joint target name: %s not found.", joint.first);
         throw std::runtime_error("joint target name not found in joints");
       }
-      joint_target[joint_idx - wp.joint_names.begin()] = joint.second;
+      joint_target[joint_idx - wp.getJointNames().begin()] = joint.second;
     }
     std::cout << "joint state target: " << joint_target.transpose() << std::endl;
   }
@@ -425,7 +425,7 @@ CompositeInstruction MMMOPlannerPlanProfile::stateCartCartWaypoint(const Kinemat
 {
   // Get IK seed
   Eigen::VectorXd seed = request.env_state.getJointValues(base.manip->getJointNames());
-  tesseract_common::enforcePositionLimits(seed, base.manip->getLimits().joint_limits);
+  tesseract_common::enforcePositionLimits<double>(seed, base.manip->getLimits().joint_limits);
 
   // Calculate IK for start and end
   Eigen::Isometry3d p1_world = prev.extractCartesianPose();

@@ -36,6 +36,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_command_language/poly/instruction_poly.h>
 #include <tesseract_command_language/poly/cartesian_waypoint_poly.h>
 #include <tesseract_command_language/poly/joint_waypoint_poly.h>
+#include <tesseract_command_language/poly/mixed_waypoint_poly.h>
 
 namespace tesseract_planning
 {
@@ -67,9 +68,9 @@ public:
                      int index) const = 0;
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
-                     const MixedWaypoint& mixed_waypoint,
-                     const Instruction& parent_instruction,
-                     const ManipulatorInfo& manip_info,
+                     const MixedWaypointPoly& mixed_waypoint,
+                     const InstructionPoly& parent_instruction,
+                     const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index,
                      bool is_target = true) const = 0;

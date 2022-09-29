@@ -533,26 +533,26 @@ std::vector<OMPLProblem::Ptr> OMPLMotionPlanner::createProblems(const PlannerReq
           problem.push_back(std::move(sub_prob));
           ++index;
         }
-        else if (isMixedWaypoint(plan_instruction.getWaypoint()))
+        else if (plan_instruction.getWaypoint().isMixedWaypoint())
         {
-          const auto& cur_wp = plan_instruction.getWaypoint().as<tesseract_planning::MixedWaypoint>();
+          const auto& cur_wp = plan_instruction.getWaypoint().as<tesseract_planning::MixedWaypointPoly>();
 
           cur_plan_profile->applyGoalStates(
               *sub_prob, cur_wp, plan_instruction, composite_mi, active_link_names, index);
 
           ompl::base::ScopedState<> start_state(sub_prob->simple_setup->getStateSpace());
-          if (isJointWaypoint(start_waypoint) || isStateWaypoint(start_waypoint))
+          if (start_waypoint.isJointWaypoint() || start_waypoint.isStateWaypoint())
           {
             assert(checkJointPositionFormat(joint_names, start_waypoint));
             const Eigen::VectorXd& prev_position = getJointPosition(start_waypoint);
             cur_plan_profile->applyStartStates(
                 *sub_prob, prev_position, *start_instruction, composite_mi, active_link_names, index);
           }
-          else if (isCartesianWaypoint(start_waypoint))
+          else if (start_waypoint.isCartesianWaypoint())
           {
-            const auto& prev_wp = start_waypoint.as<tesseract_planning::CartesianWaypoint>();
+            const auto& prev_wp = start_waypoint.as<tesseract_planning::CartesianWaypointPoly>();
             cur_plan_profile->applyStartStates(
-                *sub_prob, prev_wp, *start_instruction, composite_mi, active_link_names, index);
+                *sub_prob, prev_wp.getTransform(), *start_instruction, composite_mi, active_link_names, index);
           }
           else
           {

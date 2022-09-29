@@ -8,9 +8,9 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <boost/serialization/base_object.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/core/waypoint.h>
-#include <tesseract_command_language/joint_waypoint.h>
-#include <tesseract_command_language/cartesian_waypoint.h>
+#include <tesseract_command_language/poly/mixed_waypoint_poly.h>
+#include <tesseract_common/utils.h>
+
 namespace tesseract_planning
 {
 
@@ -25,28 +25,32 @@ public:
 << ", link_targets: " << this->link_targets.size() << std::endl;
 }*/
 
-  MixedWaypoint(std::vector<std::string> joint_names) : joint_names(std::move(joint_names)) {}
+  MixedWaypoint(std::vector<std::string> joint_names) : joint_names_(std::move(joint_names)) {}
 
   bool operator==(const MixedWaypoint& rhs) const;
   bool operator!=(const MixedWaypoint& rhs) const;
 
   // all joint names for manipulator
-  std::vector<std::string> joint_names;
+  std::vector<std::string> joint_names_;
   // target joint name and value
   std::map<std::string, double> joint_targets_;
   // target link name and pose
-  std::map<std::string, Eigen::Isometry3d> link_targets;
-  std::map<std::string, Eigen::Isometry3d> link_constraints;
+  std::map<std::string, Eigen::Isometry3d> link_targets_;
+  std::map<std::string, Eigen::Isometry3d> link_constraints_;
 
+  std::vector<std::string> getJointNames();
+  const std::vector<std::string> getJointNames() const;
   void addJointTarget(std::string joint_name, double joint_value);
+  std::map<std::string, double> getJointTargets();
+  const std::map<std::string, double> getJointTargets() const;
+  std::map<int, double> getJointIndexTargets();
+  const std::map<int, double> getJointIndexTargets() const;
   void addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf);
-
+  std::map<std::string, Eigen::Isometry3d> getLinkTargets();
+  const std::map<std::string, Eigen::Isometry3d> getLinkTargets() const;
   void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf);
-
-  std::map<int, double> getJointIndexTargets() const;
-  // not in use(formerly for generating term info, now deprecated)
-  // JointWaypoint extractJointWaypoint() const;
-  // CartesianWaypoint extractCartesianWaypoint() const;
+  std::map<std::string, Eigen::Isometry3d> getLinkConstraints();
+  const std::map<std::string, Eigen::Isometry3d> getLinkConstraints() const;
 
 private:
   friend class boost::serialization::access;
@@ -58,7 +62,7 @@ private:
 #ifdef SWIG
 %tesseract_command_language_add_waypoint_type(MixedWaypoint)
 #else
-TESSERACT_WAYPOINT_EXPORT_KEY(tesseract_planning, MixedWaypoint);
+TESSERACT_MIXED_WAYPOINT_EXPORT_KEY(tesseract_planning, MixedWaypoint);
 #endif  // SWIG
 
 #endif  // TESSERACT_COMMAND_LANGUAGE_NULL_WAYPOINT_H

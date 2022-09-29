@@ -25,7 +25,7 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
 }
 
 tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                         const MixedWaypoint& waypoint,
+                                         const MixedWaypointPoly& waypoint,
                                          const std::string working_frame,
                                          double tolerance)
 {
@@ -33,7 +33,7 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
   auto limits = manip->getLimits();
   auto redundancy_indices = manip->getRedundancyCapableJointIndices();
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
-  for (auto link_target : waypoint.link_targets)
+  for (auto link_target : waypoint.getLinkTargets())
   {
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
@@ -84,7 +84,7 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
 
 // seed here is the initial joint pose, not actual seed used for kinematics.
 std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinematics::KinematicGroup::Ptr manip,
-                                                               const MixedWaypoint& waypoint,
+                                                               const MixedWaypointPoly& waypoint,
                                                                const std::string working_frame,
                                                                const Eigen::VectorXd& prev_joints,
                                                                const Eigen::VectorXd& cost_coefficient_input)
@@ -115,7 +115,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
   // ik_with_cost_queue is reversed when inserting elements(larger cost will be poped first)
   std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> ik_with_cost_queue;
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
-  for (auto link_target : waypoint.link_targets)
+  for (auto link_target : waypoint.getLinkTargets())
   {
     std::stringstream ss;
     ss << link_target.first << ", working frame: " << working_frame
@@ -143,7 +143,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
       throw e;
     }
 
-    // std::cout << "result length: " << result.size() << std::endl;
+    std::cout << "result length: " << result.size() << std::endl;
     for (const auto& res : result)
     {
       double cost = getIKCost(waypoint, res, prev_joints, cost_coeff);
@@ -189,7 +189,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
   // get more than 1000 ik solutions
 }
 
-double getIKCost(const MixedWaypoint& wp,
+double getIKCost(const MixedWaypointPoly& wp,
                  const Eigen::VectorXd& target,
                  const Eigen::VectorXd& base,
                  const Eigen::VectorXd& cost_coefficient)
@@ -206,7 +206,7 @@ double getIKCost(const MixedWaypoint& wp,
   return std::abs(cost);
 }
 
-double getIKGoalCost(const Eigen::VectorXd& ik, const MixedWaypoint& wp, double tolerance)
+double getIKGoalCost(const Eigen::VectorXd& ik, const MixedWaypointPoly& wp, double tolerance)
 {
   double cost = 0;
   for (auto const& jt : wp.getJointIndexTargets())

@@ -32,7 +32,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <Eigen/Geometry>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/command_language.h>
 #include <tesseract_motion_planners/core/types.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
 
@@ -61,12 +60,12 @@ public:
   MMMOPlanProfile() = default;
   virtual ~MMMOPlanProfile() = default;
 
-  virtual CompositeInstruction generate(const PlanInstruction& prev_instruction,
-                                        const MoveInstruction& prev_seed,
-                                        const PlanInstruction& base_instruction,
-                                        const Instruction& next_instruction,
+  virtual CompositeInstruction generate(const MoveInstructionPoly& prev_instruction,
+                                        const MoveInstructionPoly& prev_seed,
+                                        const MoveInstructionPoly& base_instruction,
+                                        const InstructionPoly& next_instruction,
                                         const PlannerRequest& request,
-                                        const ManipulatorInfo& global_manip_info) const = 0;
+                                        const tesseract_common::ManipulatorInfo& global_manip_info) const = 0;
 
   void setBaseJoint(std::pair<std::string, std::string> base_joint) { base_joint_ = base_joint; }
 

@@ -37,6 +37,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_command_language/cartesian_waypoint.h>
 #include <tesseract_command_language/joint_waypoint.h>
 #include <tesseract_command_language/state_waypoint.h>
+#include <tesseract_command_language/mixed_waypoint.h>
 
 namespace tesseract_planning
 {
@@ -69,6 +70,20 @@ MoveInstruction::MoveInstruction(JointWaypointPoly waypoint,
 }
 
 MoveInstruction::MoveInstruction(StateWaypointPoly waypoint,
+                                 MoveInstructionType type,
+                                 std::string profile,
+                                 tesseract_common::ManipulatorInfo manipulator_info)
+  : uuid_(boost::uuids::random_generator()())
+  , move_type_(type)
+  , profile_(std::move(profile))
+  , waypoint_(std::move(waypoint))
+  , manipulator_info_(std::move(manipulator_info))
+{
+  if (move_type_ == MoveInstructionType::LINEAR || move_type_ == MoveInstructionType::CIRCULAR)
+    path_profile_ = profile_;
+}
+
+MoveInstruction::MoveInstruction(MixedWaypointPoly waypoint,
                                  MoveInstructionType type,
                                  std::string profile,
                                  tesseract_common::ManipulatorInfo manipulator_info)
@@ -137,6 +152,8 @@ MoveInstructionType MoveInstruction::getMoveType() const { return move_type_; }
 void MoveInstruction::assignCartesianWaypoint(CartesianWaypointPoly waypoint) { waypoint_ = waypoint; }
 void MoveInstruction::assignJointWaypoint(JointWaypointPoly waypoint) { waypoint_ = waypoint; }
 void MoveInstruction::assignStateWaypoint(StateWaypointPoly waypoint) { waypoint_ = waypoint; }
+void MoveInstruction::assignMixedWaypoint(MixedWaypointPoly waypoint) { waypoint_ = waypoint; }
+
 WaypointPoly& MoveInstruction::getWaypoint() { return waypoint_; }
 const WaypointPoly& MoveInstruction::getWaypoint() const { return waypoint_; }
 

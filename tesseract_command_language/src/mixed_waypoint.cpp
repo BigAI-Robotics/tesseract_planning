@@ -37,45 +37,75 @@ void MixedWaypoint::print(const std::string& prefix) const
 {
   {
     std::cout << prefix << "Mixed WP: joint_names: ";
-    for (auto name : joint_names)
+    for (auto name : joint_names_)
     {
       std::cout << name << ", ";
     }
   }
 }
 
+std::vector<std::string> MixedWaypoint::getJointNames() { return joint_names_; }
+const std::vector<std::string> MixedWaypoint::getJointNames() const { return joint_names_; }
+
 void MixedWaypoint::addJointTarget(std::string joint_name, double joint_value)
 {
   joint_targets_[joint_name] = joint_value;
 }
 
-void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf)
-{
-  link_targets[link_name] = link_tf;
-}
+std::map<std::string, double> MixedWaypoint::getJointTargets() { return joint_targets_; }
+const std::map<std::string, double> MixedWaypoint::getJointTargets() const { return joint_targets_; }
 
-void MixedWaypoint::addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf)
-{
-  link_constraints[link_name] = link_tf;
-}
-
-std::map<int, double> MixedWaypoint::getJointIndexTargets() const
+std::map<int, double> MixedWaypoint::getJointIndexTargets()
 {
   std::map<int, double> joint_index_targets;
   for (auto const& jt : joint_targets_)
   {
-    auto itr = std::find(joint_names.begin(), joint_names.end(), jt.first);
-    if (itr == joint_names.end())
+    auto itr = std::find(joint_names_.begin(), joint_names_.end(), jt.first);
+    if (itr == joint_names_.end())
     {
       throw std::logic_error("cannot find target joint name");
     }
-    int index = std::distance(joint_names.begin(), itr);
+    int index = std::distance(joint_names_.begin(), itr);
+    joint_index_targets[index] = jt.second;
+  }
+  return joint_index_targets;
+}
+const std::map<int, double> MixedWaypoint::getJointIndexTargets() const
+{
+  std::map<int, double> joint_index_targets;
+  for (auto const& jt : joint_targets_)
+  {
+    auto itr = std::find(joint_names_.begin(), joint_names_.end(), jt.first);
+    if (itr == joint_names_.end())
+    {
+      throw std::logic_error("cannot find target joint name");
+    }
+    int index = std::distance(joint_names_.begin(), itr);
     joint_index_targets[index] = jt.second;
   }
   return joint_index_targets;
 }
 
-bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const { return true; }
+void MixedWaypoint::addLinkTarget(std::string link_name, Eigen::Isometry3d& link_tf)
+{
+  link_targets_[link_name] = link_tf;
+}
+
+std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkTargets() { return link_targets_; }
+const std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkTargets() const { return link_targets_; }
+
+void MixedWaypoint::addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf)
+{
+  link_constraints_[link_name] = link_tf;
+}
+
+std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkConstraints() { return link_constraints_; }
+const std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkConstraints() const { return link_constraints_; }
+
+bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const
+{
+  return true;  // TODO
+}
 bool MixedWaypoint::operator!=(const MixedWaypoint& /*rhs*/) const { return false; }
 
 template <class Archive>
@@ -86,4 +116,4 @@ void MixedWaypoint::serialize(Archive& /*ar*/, const unsigned int /*version*/)
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::MixedWaypoint)
-TESSERACT_WAYPOINT_EXPORT_IMPLEMENT(tesseract_planning::MixedWaypoint);
+TESSERACT_MIXED_WAYPOINT_EXPORT_IMPLEMENT(tesseract_planning::MixedWaypoint);

@@ -144,6 +144,8 @@ struct WaypointPoly : WaypointPolyBase
 
   bool isStateWaypoint() const;
 
+  bool isMixedWaypoint() const;
+
 private:
   friend class boost::serialization::access;
   friend struct tesseract_common::Serialization;

@@ -92,9 +92,9 @@ public:
              int index) const override;
 
   void apply(trajopt::ProblemConstructionInfo& pci,
-             const MixedWaypoint& mixed_waypoint,
-             const Instruction& parent_instruction,
-             const ManipulatorInfo& manip_info,
+             const MixedWaypointPoly& mixed_waypoint,
+             const InstructionPoly& parent_instruction,
+             const tesseract_common::ManipulatorInfo& manip_info,
              const std::vector<std::string>& active_links,
              int index,
              bool is_target = true) const override;

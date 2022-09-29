@@ -32,7 +32,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <Eigen/Geometry>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/command_language.h>
 #include <tesseract_motion_planners/core/types.h>
 #include <tesseract_motion_planners/3mo/profile/3mo_profile.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
@@ -83,12 +82,12 @@ public:
                          double translation_longest_valid_segment_length = 0.1,
                          double rotation_longest_valid_segment_length = 5 * M_PI / 180);
 
-  CompositeInstruction generate(const PlanInstruction& prev_instruction,
-                                const MoveInstruction& prev_seed,
-                                const PlanInstruction& base_instruction,
-                                const Instruction& next_instruction,
+  CompositeInstruction generate(const MoveInstructionPoly& prev_instruction,
+                                const MoveInstructionPoly& prev_seed,
+                                const MoveInstructionPoly& base_instruction,
+                                const InstructionPoly& next_instruction,
                                 const PlannerRequest& request,
-                                const ManipulatorInfo& global_manip_info) const override;
+                                const tesseract_common::ManipulatorInfo& global_manip_info) const override;
 
   void setMapInfo(int x, int y, double resolution) { map_ = MapInfo(x, y, resolution); }
 

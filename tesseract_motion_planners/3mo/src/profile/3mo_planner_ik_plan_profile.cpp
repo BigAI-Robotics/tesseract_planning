@@ -45,12 +45,13 @@ MMMOPlannerIKPlanProfile::MMMOPlannerIKPlanProfile(int min_steps,
   // std::cout << "map step size:" << map_.step_size << std::endl;
 }
 
-CompositeInstruction MMMOPlannerIKPlanProfile::generate(const PlanInstruction& prev_instruction,
-                                                        const MoveInstruction& /*prev_seed*/,
-                                                        const PlanInstruction& base_instruction,
-                                                        const Instruction& /*next_instruction*/,
-                                                        const PlannerRequest& request,
-                                                        const ManipulatorInfo& global_manip_info) const
+CompositeInstruction
+MMMOPlannerIKPlanProfile::generate(const MoveInstructionPoly& prev_instruction,
+                                   const MoveInstructionPoly& /*prev_seed*/,
+                                   const MoveInstructionPoly& base_instruction,
+                                   const InstructionPoly& /*next_instruction*/,
+                                   const PlannerRequest& request,
+                                   const tesseract_common::ManipulatorInfo& global_manip_info) const
 {
   CONSOLE_BRIDGE_logDebug("generating mmmo ik plan profile...");
   KinematicGroupInstructionInfo info1(prev_instruction, request, global_manip_info);
@@ -82,17 +83,17 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointMixedWaypoint(const Kin
 
   tesseract_environment::Environment::Ptr cloned_env = request.env->clone();
   tesseract_kinematics::KinematicGroup::Ptr kin_group = std::move(cloned_env->getKinematicGroup(prev.manip->getName()));
-  MixedWaypoint wp = base.instruction.getWaypoint().as<MixedWaypoint>();
+  MixedWaypointPoly wp = base.instruction.getWaypoint().as<MixedWaypointPoly>();
 
-  if (!wp.link_targets.empty())
+  if (!wp.getLinkTargets().empty())
   {
     CONSOLE_BRIDGE_logWarn("link target specified for 3mo planner ik plan profile! ignoring.");
   }
 
-  if (wp.joint_targets_.size() != 1)
+  if (wp.getJointTargets().size() != 1)
     throw std::runtime_error("waypoint joint target size != 1");
   std::pair<std::string, double> jt;
-  for (auto const& jt_ : wp.joint_targets_)
+  for (auto const& jt_ : wp.getJointTargets())
   {
     jt.first = jt_.first;
     jt.second = jt_.second;
@@ -254,7 +255,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartCartWaypoint(const Kinem
 {
   // Get IK seed
   Eigen::VectorXd seed = request.env_state.getJointValues(base.manip->getJointNames());
-  tesseract_common::enforcePositionLimits(seed, base.manip->getLimits().joint_limits);
+  tesseract_common::enforcePositionLimits<double>(seed, base.manip->getLimits().joint_limits);
 
   // Calculate IK for start and end
   Eigen::Isometry3d p1_world = prev.extractCartesianPose();

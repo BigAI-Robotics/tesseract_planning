@@ -35,6 +35,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_command_language/poly/instruction_poly.h>
 #include <tesseract_motion_planners/ompl/ompl_problem.h>
 
+#include <tesseract_command_language/poly/mixed_waypoint_poly.h>
+
 namespace tesseract_planning
 {
 class OMPLPlanProfile
@@ -69,9 +71,9 @@ public:
                                int index) const = 0;
 
   virtual void applyGoalStates(OMPLProblem& prob,
-                               const tesseract_planning::MixedWaypoint& mixed_waypoint,
-                               const Instruction& parent_instruction,
-                               const ManipulatorInfo& manip_info,
+                               const tesseract_planning::MixedWaypointPoly& mixed_waypoint,
+                               const InstructionPoly& parent_instruction,
+                               const tesseract_common::ManipulatorInfo& manip_info,
                                const std::vector<std::string>& active_links,
                                int index) const = 0;
 

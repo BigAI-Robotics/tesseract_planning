@@ -35,9 +35,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <boost/algorithm/string.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/instruction_type.h>
-#include <tesseract_command_language/move_instruction.h>
-#include <tesseract_command_language/plan_instruction.h>
+#include <tesseract_command_language/poly/move_instruction_poly.h>
 
 #include <tesseract_motion_planners/ompl/profile/ompl_constrained_plan_profile.h>
 #include <tesseract_motion_planners/ompl/utils.h>
@@ -341,19 +339,19 @@ void OMPLConstrainedPlanProfile::setup(OMPLProblem& prob) const
 }
 
 void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
-                                                 const Eigen::Isometry3d& cartesian_waypoint,
-                                                 const Instruction& parent_instruction,
-                                                 const ManipulatorInfo& manip_info,
-                                                 const std::vector<std::string>& /*active_links*/,
-                                                 int /*index*/) const
+                                             const Eigen::Isometry3d& cartesian_waypoint,
+                                             const InstructionPoly& parent_instruction,
+                                             const tesseract_common::ManipulatorInfo& manip_info,
+                                             const std::vector<std::string>& /*active_links*/,
+                                             int /*index*/) const
 {
   const auto dof = prob.manip->numJoints();
   tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  assert(isPlanInstruction(parent_instruction));
-  const auto& base_instruction = parent_instruction.as<PlanInstruction>();
+  assert(parent_instruction.isMoveInstruction());
+  const auto& base_instruction = parent_instruction.as<MoveInstructionPoly>();
   assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
 
   if (mi.manipulator.empty())
     throw std::runtime_error("OMPL, manipulator is empty!");
@@ -384,13 +382,13 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
       Eigen::VectorXd& solution = joint_solutions[i];
 
       // Check limits
-      if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+      if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
       {
-        tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
+        tesseract_common::enforcePositionLimits<double>(solution, limits.joint_limits);
       }
       else
       {
-        CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
+        CONSOLE_BRIDGE_logDebug("In OMPLDefaultPlanProfile: Goal state has invalid bounds");
       }
 
       // Get discrete contact manager for testing provided start and end position
@@ -427,19 +425,18 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
             CONSOLE_BRIDGE_logError(("Solution: " + std::to_string(i) + "  Links: " + contact.link_names[0] + ", " +
                                      contact.link_names[1] + "  Distance: " + std::to_string(contact.distance))
                                         .c_str());
-      throw std::runtime_error("In OMPLConstrainedPlanProfile: All goal states are either in collision or outside "
-                               "limits");
+      throw std::runtime_error("In OMPLDefaultPlanProfile: All goal states are either in collision or outside limits");
     }
     prob.simple_setup->setGoal(goal_states);
   }
 }
 
 void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
-                                                 const Eigen::VectorXd& joint_waypoint,
-                                                 const Instruction& /*parent_instruction*/,
-                                                 const ManipulatorInfo& /*manip_info*/,
-                                                 const std::vector<std::string>& /*active_links*/,
-                                                 int /*index*/) const
+                                             const Eigen::VectorXd& joint_waypoint,
+                                             const InstructionPoly& /*parent_instruction*/,
+                                             const tesseract_common::ManipulatorInfo& /*manip_info*/,
+                                             const std::vector<std::string>& /*active_links*/,
+                                             int /*index*/) const
 {
   const auto dof = prob.manip->numJoints();
   tesseract_common::KinematicLimits limits = prob.manip->getLimits();
@@ -447,13 +444,13 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
   {
     // Check limits
     Eigen::VectorXd solution = joint_waypoint;
-    if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+    if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
     {
-      tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
+      tesseract_common::enforcePositionLimits<double>(solution, limits.joint_limits);
     }
     else
     {
-      CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
+      CONSOLE_BRIDGE_logDebug("In OMPLDefaultPlanProfile: Goal state has invalid bounds");
     }
 
     // Get discrete contact manager for testing provided start and end position
@@ -462,7 +459,7 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
     tesseract_collision::ContactResultMap contact_map;
     if (checkStateInCollision(prob, solution, contact_map))
     {
-      CONSOLE_BRIDGE_logError("In OMPLConstrainedPlanProfile: Goal state is in collision");
+      CONSOLE_BRIDGE_logError("In OMPLDefaultPlanProfile: Goal state is in collision");
       for (const auto& contact_vec : contact_map)
         for (const auto& contact : contact_vec.second)
           CONSOLE_BRIDGE_logError(("Links: " + contact.link_names[0] + ", " + contact.link_names[1] +
@@ -479,133 +476,135 @@ void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
 }
 
 void OMPLConstrainedPlanProfile::applyGoalStates(OMPLProblem& prob,
-                                                 const tesseract_planning::MixedWaypoint& waypoint,
-                                                 const Instruction& parent_instruction,
-                                                 const ManipulatorInfo& manip_info,
+                                                 const tesseract_planning::MixedWaypointPoly& waypoint,
+                                                 const InstructionPoly& parent_instruction,
+                                                 const tesseract_common::ManipulatorInfo& manip_info,
                                                  const std::vector<std::string>& /*active_links*/,
                                                  int /*index*/) const
 {
-  const auto dof = prob.manip->numJoints();
-  tesseract_common::KinematicLimits limits = prob.manip->getLimits();
+  // const auto dof = prob.manip->numJoints();
+  // tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  assert(isPlanInstruction(parent_instruction));
-  const auto& base_instruction = parent_instruction.as<PlanInstruction>();
-  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  // assert(isPlanInstruction(parent_instruction));
+  // const auto& base_instruction = parent_instruction.as<PlanInstruction>();
+  // assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
+  // ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
 
-  if (mi.manipulator.empty())
-    throw std::runtime_error("OMPL, manipulator is empty!");
+  // if (mi.manipulator.empty())
+  //   throw std::runtime_error("OMPL, manipulator is empty!");
 
-  if (mi.tcp_frame.empty())
-    throw std::runtime_error("OMPL, tcp_frame is empty!");
+  // if (mi.tcp_frame.empty())
+  //   throw std::runtime_error("OMPL, tcp_frame is empty!");
 
-  if (mi.working_frame.empty())
-    throw std::runtime_error("OMPL, working_frame is empty!");
+  // if (mi.working_frame.empty())
+  //   throw std::runtime_error("OMPL, working_frame is empty!");
 
-  // Eigen::Isometry3d tcp_offset = prob.env->findTCPOffset(mi);
+  // // Eigen::Isometry3d tcp_offset = prob.env->findTCPOffset(mi);
 
-  // Eigen::Isometry3d tcp_frame_cwp = cartesian_waypoint * tcp_offset.inverse();
+  // // Eigen::Isometry3d tcp_frame_cwp = cartesian_waypoint * tcp_offset.inverse();
 
-  // auto goal = std::make_shared<JointGoal>(waypoint.getJointIndexTargets(), prob.simple_setup->getSpaceInformation());
-  // goal->setThreshold(0.08);
-  /** @todo Need to add Descartes pose sample to ompl profile */
-  tesseract_kinematics::KinGroupIKInputs ik_inputs;
-  for (auto link_target : waypoint.link_targets)
-  {
-    ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, mi.working_frame, link_target.first));
-  }
+  // // auto goal = std::make_shared<JointGoal>(waypoint.getJointIndexTargets(),
+  // prob.simple_setup->getSpaceInformation());
+  // // goal->setThreshold(0.08);
+  // /** @todo Need to add Descartes pose sample to ompl profile */
+  // tesseract_kinematics::KinGroupIKInputs ik_inputs;
+  // for (auto link_target : waypoint.link_targets)
+  // {
+  //   ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, mi.working_frame,
+  //   link_target.first));
+  // }
 
-  auto goal_states = std::make_shared<ompl::base::GoalStates>(prob.simple_setup->getSpaceInformation());
-  for (int retry = 0; retry < 5000; retry++)
-  {
-    Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
-    tesseract_kinematics::IKSolutions joint_solutions =
-        std::dynamic_pointer_cast<const tesseract_kinematics::KinematicGroup>(prob.manip)
-            ->calcInvKin(ik_inputs, ik_seed);
+  // auto goal_states = std::make_shared<ompl::base::GoalStates>(prob.simple_setup->getSpaceInformation());
+  // for (int retry = 0; retry < 5000; retry++)
+  // {
+  //   Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+  //   tesseract_kinematics::IKSolutions joint_solutions =
+  //       std::dynamic_pointer_cast<const tesseract_kinematics::KinematicGroup>(prob.manip)
+  //           ->calcInvKin(ik_inputs, ik_seed);
 
-    std::vector<tesseract_collision::ContactResultMap> contact_map_vec(
-        static_cast<std::size_t>(joint_solutions.size()));
-    for (std::size_t i = 0; i < joint_solutions.size(); ++i)
-    {
-      Eigen::VectorXd& solution = joint_solutions[i];
+  //   std::vector<tesseract_collision::ContactResultMap> contact_map_vec(
+  //       static_cast<std::size_t>(joint_solutions.size()));
+  //   for (std::size_t i = 0; i < joint_solutions.size(); ++i)
+  //   {
+  //     Eigen::VectorXd& solution = joint_solutions[i];
 
-      bool fulfill_target = true;
-      for (auto const& jt : waypoint.getJointIndexTargets())
-      {
-        if (abs(solution[jt.first] - jt.second) > 0.03)
-          fulfill_target = false;
-      }
-      if (fulfill_target == false)
-        continue;
-      // Check limits
-      if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
-      {
-        tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
-      }
-      else
-      {
-        CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
-      }
+  //     bool fulfill_target = true;
+  //     for (auto const& jt : waypoint.getJointIndexTargets())
+  //     {
+  //       if (abs(solution[jt.first] - jt.second) > 0.03)
+  //         fulfill_target = false;
+  //     }
+  //     if (fulfill_target == false)
+  //       continue;
+  //     // Check limits
+  //     if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+  //     {
+  //       tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
+  //     }
+  //     else
+  //     {
+  //       CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
+  //     }
 
-      // Get discrete contact manager for testing provided start and end position
-      // This is required because collision checking happens in motion validators now
-      // instead of the isValid function to avoid unnecessary collision checks.
-      if (!checkStateInCollision(prob, solution, contact_map_vec[i]))
-      {
-        {
-          ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
-          for (unsigned j = 0; j < dof; ++j)
-            goal_state[j] = solution[static_cast<Eigen::Index>(j)];
+  //     // Get discrete contact manager for testing provided start and end position
+  //     // This is required because collision checking happens in motion validators now
+  //     // instead of the isValid function to avoid unnecessary collision checks.
+  //     if (!checkStateInCollision(prob, solution, contact_map_vec[i]))
+  //     {
+  //       {
+  //         ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
+  //         for (unsigned j = 0; j < dof; ++j)
+  //           goal_state[j] = solution[static_cast<Eigen::Index>(j)];
 
-          goal_states->addState(goal_state);
-        }
+  //         goal_states->addState(goal_state);
+  //       }
 
-        auto redundant_solutions = tesseract_kinematics::getRedundantSolutions<double>(
-            solution, limits.joint_limits, prob.manip->getRedundancyCapableJointIndices());
-        for (const auto& rs : redundant_solutions)
-        {
-          ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
-          for (unsigned j = 0; j < dof; ++j)
-            goal_state[j] = rs[static_cast<Eigen::Index>(j)];
+  //       auto redundant_solutions = tesseract_kinematics::getRedundantSolutions<double>(
+  //           solution, limits.joint_limits, prob.manip->getRedundancyCapableJointIndices());
+  //       for (const auto& rs : redundant_solutions)
+  //       {
+  //         ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
+  //         for (unsigned j = 0; j < dof; ++j)
+  //           goal_state[j] = rs[static_cast<Eigen::Index>(j)];
 
-          // std::stringstream buffer;
-          // buffer << rs.transpose();
-          // CONSOLE_BRIDGE_logDebug("[mixed waypoint] added to goal state: %s", buffer.str().c_str());
+  //         // std::stringstream buffer;
+  //         // buffer << rs.transpose();
+  //         // CONSOLE_BRIDGE_logDebug("[mixed waypoint] added to goal state: %s", buffer.str().c_str());
 
-          goal_states->addState(goal_state);
-        }
-      }
-    }
-  }
+  //         goal_states->addState(goal_state);
+  //       }
+  //     }
+  //   }
+  // }
 
-  if (!goal_states->hasStates())
-  {
-    // for (std::size_t i = 0; i < contact_map_vec.size(); i++)
-    //   for (const auto& contact_vec : contact_map_vec[i])
-    //     for (const auto& contact : contact_vec.second)
-    //       CONSOLE_BRIDGE_logError(("Solution: " + std::to_string(i) + "  Links: " + contact.link_names[0] + ", " +
-    //                                contact.link_names[1] + "  Distance: " + std::to_string(contact.distance))
-    //                                   .c_str());
-    throw std::runtime_error("In OMPLConstrainedPlanProfile: All goal states are either in collision or outside "
-                             "limits");
-  }
-  prob.simple_setup->setGoal(goal_states);
+  // if (!goal_states->hasStates())
+  // {
+  //   // for (std::size_t i = 0; i < contact_map_vec.size(); i++)
+  //   //   for (const auto& contact_vec : contact_map_vec[i])
+  //   //     for (const auto& contact : contact_vec.second)
+  //   //       CONSOLE_BRIDGE_logError(("Solution: " + std::to_string(i) + "  Links: " + contact.link_names[0] + ", " +
+  //   //                                contact.link_names[1] + "  Distance: " + std::to_string(contact.distance))
+  //   //                                   .c_str());
+  //   throw std::runtime_error("In OMPLConstrainedPlanProfile: All goal states are either in collision or outside "
+  //                            "limits");
+  // }
+  // prob.simple_setup->setGoal(goal_states);
 }
 
 void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
                                                   const Eigen::Isometry3d& cartesian_waypoint,
-                                                  const Instruction& parent_instruction,
-                                                  const ManipulatorInfo& manip_info,
+                                                  const InstructionPoly& parent_instruction,
+                                                  const tesseract_common::ManipulatorInfo& manip_info,
                                                   const std::vector<std::string>& /*active_links*/,
                                                   int /*index*/) const
 {
   const auto dof = prob.manip->numJoints();
   tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  assert(isPlanInstruction(parent_instruction));
-  const auto& base_instruction = parent_instruction.as<PlanInstruction>();
+  assert(parent_instruction.isMoveInstruction());
+  const auto& base_instruction = parent_instruction.as<MoveInstructionPoly>();
   assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
 
   if (mi.manipulator.empty())
     throw std::runtime_error("OMPL, manipulator is empty!");
@@ -636,9 +635,9 @@ void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
       Eigen::VectorXd& solution = joint_solutions[i];
 
       // Check limits
-      if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+      if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
       {
-        tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
+        tesseract_common::enforcePositionLimits<double>(solution, limits.joint_limits);
       }
       else
       {
@@ -688,8 +687,8 @@ void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
 
 void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
                                                   const Eigen::VectorXd& joint_waypoint,
-                                                  const Instruction& /*parent_instruction*/,
-                                                  const ManipulatorInfo& /*manip_info*/,
+                                                  const InstructionPoly& /*parent_instruction*/,
+                                                  const tesseract_common::ManipulatorInfo& /*manip_info*/,
                                                   const std::vector<std::string>& /*active_links*/,
                                                   int /*index*/) const
 {
@@ -700,9 +699,9 @@ void OMPLConstrainedPlanProfile::applyStartStates(OMPLProblem& prob,
   {
     Eigen::VectorXd solution = joint_waypoint;
 
-    if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
+    if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
     {
-      tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
+      tesseract_common::enforcePositionLimits<double>(solution, limits.joint_limits);
     }
     else
     {

@@ -597,10 +597,10 @@ TrajOptMotionPlanner::createProblem(const PlannerRequest& request) const
           cur_plan_profile->apply(*pci, cur_wp, plan_instruction, composite_mi, active_links, index);
         }
         // added for mixed waypoint
-        else if (isMixedWaypoint(plan_instruction.getWaypoint()))
+        else if (plan_instruction.getWaypoint().isMixedWaypoint())
         {
           CONSOLE_BRIDGE_logInform("mixed waypoint processing...");
-          const auto& mixed_wp = plan_instruction.getWaypoint().as<MixedWaypoint>();
+          const auto& mixed_wp = plan_instruction.getWaypoint().as<MixedWaypointPoly>();
           for (std::size_t s = 0; s < seed_composite.size() - 1; ++s)
           {
             cur_plan_profile->apply(*pci, mixed_wp, plan_instruction, composite_mi, active_links, index, false);

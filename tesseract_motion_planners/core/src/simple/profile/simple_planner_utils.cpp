@@ -114,7 +114,7 @@ KinematicGroupInstructionInfo::KinematicGroupInstructionInfo(const MoveInstructi
     has_cartesian_waypoint = false;
   else if (plan_instruction.getWaypoint().isCartesianWaypoint())
     has_cartesian_waypoint = true;
-  else if (isMixedWaypoint(plan_instruction.getWaypoint())){
+  else if (plan_instruction.getWaypoint().isMixedWaypoint()){
     has_mixed_waypoint = true;
   }
   else
