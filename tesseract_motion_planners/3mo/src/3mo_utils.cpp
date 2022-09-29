@@ -143,7 +143,6 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
       throw e;
     }
 
-    std::cout << "result length: " << result.size() << std::endl;
     for (const auto& res : result)
     {
       double cost = getIKCost(waypoint, res, prev_joints, cost_coeff);

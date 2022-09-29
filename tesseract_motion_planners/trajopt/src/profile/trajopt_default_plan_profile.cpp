@@ -227,15 +227,18 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
 
   // generate waypoint and coeff from target joint values
   Eigen::VectorXd adjusted_joint_coeff = Eigen::VectorXd::Zero(joint_num);
-  JointWaypoint joint_waypoint(mixed_waypoint.getJointNames(), Eigen::VectorXd::Zero(joint_num));
+  std::vector<std::string> joint_names = mixed_waypoint.getJointNames();
+  JointWaypoint joint_waypoint(joint_names, Eigen::VectorXd::Zero(joint_num));
   for (auto t : mixed_waypoint.getJointTargets())
   {
-    auto it = std::find(mixed_waypoint.getJointNames().begin(), mixed_waypoint.getJointNames().end(), t.first);
-    if (it == mixed_waypoint.getJointNames().end())
+    auto it = std::find(joint_names.begin(), joint_names.end(), t.first);
+    if (it == joint_names.end())
     {
       throw std::logic_error("cannot find target joint name");
     }
-    int idx = std::distance(mixed_waypoint.getJointNames().begin(), it);
+    int idx = std::distance(joint_names.begin(), it);
+
+    assert(idx < joint_num);
     adjusted_joint_coeff(idx) = joint_coeff.size() == adjusted_joint_coeff.size() ?
                                     joint_coeff(idx) :
                                     joint_coeff(0);  // fixed joint coeff size
