@@ -280,7 +280,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     }
     result.push_back(best_solution);
   }
-  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", ik_input.size(), result.size());
+  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", result.size(), ik_input.size());
 
   return result;
 }
@@ -330,7 +330,7 @@ filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
     }
     result.push_back(best_solution);
   }
-  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", ik_input.size(), result.size());
+  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", result.size(), ik_input.size());
 
   return result;
 }
