@@ -429,119 +429,119 @@ void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
 }
 
 void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
-                                             const tesseract_planning::MixedWaypointPoly& mixed_waypoint,
+                                             const tesseract_planning::MixedWaypointPoly& waypoint,
                                              const InstructionPoly& parent_instruction,
                                              const tesseract_common::ManipulatorInfo& manip_info,
                                              const std::vector<std::string>& /*active_links*/,
                                              int /*index*/) const
 {
-  // if (waypoint.link_constraints.size())
-  // {
-  //   throw std::runtime_error("Using Constraint with Ompl Default Planning Profile");
-  // }
-  // const auto dof = prob.manip->numJoints();
-  // tesseract_common::KinematicLimits limits = prob.manip->getLimits();
+  if (waypoint.getLinkConstraints().size())
+  {
+    throw std::runtime_error("Using Constraint with Ompl Default Planning Profile");
+  }
+  const auto dof = prob.manip->numJoints();
+  tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  // assert(isPlanInstruction(parent_instruction));
-  // const auto& base_instruction = parent_instruction.as<PlanInstruction>();
-  // assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  // tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  assert(parent_instruction.isMoveInstruction());
+  const auto& base_instruction = parent_instruction.as<MoveInstructionPoly>();
+  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
 
-  // if (mi.manipulator.empty())
-  //   throw std::runtime_error("OMPL, manipulator is empty!");
+  if (mi.manipulator.empty())
+    throw std::runtime_error("OMPL, manipulator is empty!");
 
-  // if (mi.tcp_frame.empty())
-  //   throw std::runtime_error("OMPL, tcp_frame is empty!");
+  if (mi.tcp_frame.empty())
+    throw std::runtime_error("OMPL, tcp_frame is empty!");
 
-  // if (mi.working_frame.empty())
-  //   throw std::runtime_error("OMPL, working_frame is empty!");
+  if (mi.working_frame.empty())
+    throw std::runtime_error("OMPL, working_frame is empty!");
 
-  // // Eigen::Isometry3d tcp_offset = prob.env->findTCPOffset(mi);
+  // Eigen::Isometry3d tcp_offset = prob.env->findTCPOffset(mi);
 
-  // // Eigen::Isometry3d tcp_frame_cwp = cartesian_waypoint * tcp_offset.inverse();
+  // Eigen::Isometry3d tcp_frame_cwp = cartesian_waypoint * tcp_offset.inverse();
 
-  // // auto goal = std::make_shared<JointGoal>(waypoint.getJointIndexTargets(),
+  // auto goal = std::make_shared<JointGoal>(waypoint.getJointIndexTargets(),
   // prob.simple_setup->getSpaceInformation());
-  // // goal->setThreshold(0.08);
-  // /** @todo Need to add Descartes pose sample to ompl profile */
-  // tesseract_kinematics::KinGroupIKInputs ik_inputs;
-  // for (auto link_target : waypoint.link_targets)
-  // {
-  //   ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, mi.working_frame,
-  //   link_target.first));
-  // }
+  // goal->setThreshold(0.08);
+  /** @todo Need to add Descartes pose sample to ompl profile */
+  tesseract_kinematics::KinGroupIKInputs ik_inputs;
+  for (auto link_target : waypoint.getLinkTargets())
+  {
+    ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, mi.working_frame,
+    link_target.first));
+  }
 
-  // auto goal_states = std::make_shared<ompl::base::GoalStates>(prob.simple_setup->getSpaceInformation());
-  // for (int retry = 0; retry < 5000; retry++)
-  // {
-  //   Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
-  //   tesseract_kinematics::IKSolutions joint_solutions =
-  //       std::dynamic_pointer_cast<const tesseract_kinematics::KinematicGroup>(prob.manip)
-  //           ->calcInvKin(ik_inputs, ik_seed);
+  auto goal_states = std::make_shared<ompl::base::GoalStates>(prob.simple_setup->getSpaceInformation());
+  for (int retry = 0; retry < 5000; retry++)
+  {
+    Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+    tesseract_kinematics::IKSolutions joint_solutions =
+        std::dynamic_pointer_cast<const tesseract_kinematics::KinematicGroup>(prob.manip)
+            ->calcInvKin(ik_inputs, ik_seed);
 
-  //   std::vector<tesseract_collision::ContactResultMap> contact_map_vec(
-  //       static_cast<std::size_t>(joint_solutions.size()));
-  //   for (std::size_t i = 0; i < joint_solutions.size(); ++i)
-  //   {
-  //     Eigen::VectorXd& solution = joint_solutions[i];
+    std::vector<tesseract_collision::ContactResultMap> contact_map_vec(
+        static_cast<std::size_t>(joint_solutions.size()));
+    for (std::size_t i = 0; i < joint_solutions.size(); ++i)
+    {
+      Eigen::VectorXd& solution = joint_solutions[i];
 
-  //     bool fulfill_target = true;
-  //     for (auto const& jt : waypoint.getJointIndexTargets())
-  //     {
-  //       if (abs(solution[jt.first] - jt.second) > 0.03)
-  //         fulfill_target = false;
-  //     }
-  //     if (fulfill_target == false)
-  //       continue;
-  //     // Check limits
-  //     if (tesseract_common::satisfiesPositionLimits(solution, limits.joint_limits))
-  //     {
-  //       tesseract_common::enforcePositionLimits(solution, limits.joint_limits);
-  //     }
-  //     else
-  //     {
-  //       CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
-  //     }
+      bool fulfill_target = true;
+      for (auto const& jt : waypoint.getJointIndexTargets())
+      {
+        if (abs(solution[jt.first] - jt.second) > 0.03)
+          fulfill_target = false;
+      }
+      if (fulfill_target == false)
+        continue;
+      // Check limits
+      if (tesseract_common::satisfiesPositionLimits<double>(solution, limits.joint_limits))
+      {
+        tesseract_common::enforcePositionLimits<double>(solution, limits.joint_limits);
+      }
+      else
+      {
+        CONSOLE_BRIDGE_logDebug("In OMPLConstrainedPlanProfile: Goal state has invalid bounds");
+      }
 
-  //     // Get discrete contact manager for testing provided start and end position
-  //     // This is required because collision checking happens in motion validators now
-  //     // instead of the isValid function to avoid unnecessary collision checks.
-  //     if (!checkStateInCollision(prob, solution, contact_map_vec[i]))
-  //     {
-  //       {
-  //         ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
-  //         for (unsigned j = 0; j < dof; ++j)
-  //           goal_state[j] = solution[static_cast<Eigen::Index>(j)];
+      // Get discrete contact manager for testing provided start and end position
+      // This is required because collision checking happens in motion validators now
+      // instead of the isValid function to avoid unnecessary collision checks.
+      if (!checkStateInCollision(prob, solution, contact_map_vec[i]))
+      {
+        {
+          ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
+          for (unsigned j = 0; j < dof; ++j)
+            goal_state[j] = solution[static_cast<Eigen::Index>(j)];
 
-  //         goal_states->addState(goal_state);
-  //       }
+          goal_states->addState(goal_state);
+        }
 
-  //       auto redundant_solutions = tesseract_kinematics::getRedundantSolutions<double>(
-  //           solution, limits.joint_limits, prob.manip->getRedundancyCapableJointIndices());
-  //       for (const auto& rs : redundant_solutions)
-  //       {
-  //         ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
-  //         for (unsigned j = 0; j < dof; ++j)
-  //           goal_state[j] = rs[static_cast<Eigen::Index>(j)];
+        auto redundant_solutions = tesseract_kinematics::getRedundantSolutions<double>(
+            solution, limits.joint_limits, prob.manip->getRedundancyCapableJointIndices());
+        for (const auto& rs : redundant_solutions)
+        {
+          ompl::base::ScopedState<> goal_state(prob.simple_setup->getStateSpace());
+          for (unsigned j = 0; j < dof; ++j)
+            goal_state[j] = rs[static_cast<Eigen::Index>(j)];
 
-  //         goal_states->addState(goal_state);
-  //       }
-  //     }
-  //   }
-  // }
+          goal_states->addState(goal_state);
+        }
+      }
+    }
+  }
 
-  // if (!goal_states->hasStates())
-  // {
-  //   // for (std::size_t i = 0; i < contact_map_vec.size(); i++)
-  //   //   for (const auto& contact_vec : contact_map_vec[i])
-  //   //     for (const auto& contact : contact_vec.second)
-  //   //       CONSOLE_BRIDGE_logError(("Solution: " + std::to_string(i) + "  Links: " + contact.link_names[0] + ", " +
-  //   //                                contact.link_names[1] + "  Distance: " + std::to_string(contact.distance))
-  //   //                                   .c_str());
-  //   throw std::runtime_error("In OMPLConstrainedPlanProfile: All goal states are either in collision or outside "
-  //                            "limits");
-  // }
-  // prob.simple_setup->setGoal(goal_states);
+  if (!goal_states->hasStates())
+  {
+    // for (std::size_t i = 0; i < contact_map_vec.size(); i++)
+    //   for (const auto& contact_vec : contact_map_vec[i])
+    //     for (const auto& contact : contact_vec.second)
+    //       CONSOLE_BRIDGE_logError(("Solution: " + std::to_string(i) + "  Links: " + contact.link_names[0] + ", " +
+    //                                contact.link_names[1] + "  Distance: " + std::to_string(contact.distance))
+    //                                   .c_str());
+    throw std::runtime_error("In OMPLConstrainedPlanProfile: All goal states are either in collision or outside "
+                             "limits");
+  }
+  prob.simple_setup->setGoal(goal_states);
 }
 
 void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
