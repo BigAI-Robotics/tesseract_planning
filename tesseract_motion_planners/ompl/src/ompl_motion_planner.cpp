@@ -279,8 +279,7 @@ tesseract_common::StatusCode OMPLMotionPlanner::solve(const PlannerRequest& requ
       tesseract_common::TrajArray trajectory = p->getTrajectory();
       CONSOLE_BRIDGE_logDebug("get trajetory for following instructions success");
       assert(checkStartState(p->simple_setup->getProblemDefinition(), trajectory.row(0), p->extractor));
-      assert(
-          checkGoalState(p->simple_setup->getProblemDefinition(), trajectory.bottomRows(1).transpose(), p->extractor));
+      assert(checkGoalState(p->simple_setup->getProblemDefinition(), trajectory.bottomRows(1).transpose(), p->extractor));
 
       CONSOLE_BRIDGE_logDebug("check start and goal success");
       // Loop over the flattened results and add them to response if the input was a plan instruction
@@ -436,6 +435,10 @@ std::vector<OMPLProblem::Ptr> OMPLMotionPlanner::createProblems(const PlannerReq
       {
         CONSOLE_BRIDGE_logDebug("constrained plan profile found, getting constrained plan profile...");
         cur_plan_profile = request.profiles->getProfile<OMPLConstrainedPlanProfile>(name_, profile);
+      }
+      else
+      {
+        cur_plan_profile = request.profiles->getProfile<OMPLDefaultPlanProfile>(name_, profile);
       }
 
       cur_plan_profile =
