@@ -50,4 +50,9 @@ std::vector<std::pair<Eigen::VectorXd, double>>
 filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
                   tesseract_kinematics::KinematicGroup::Ptr kin_group,
                   std::vector<std::pair<Eigen::VectorXd, double>> ik_input);
+
+Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
+                         const Eigen::VectorXd& ik_result,
+                         const Eigen::VectorXd& init_config);
+
 }  // namespace tesseract_planning
