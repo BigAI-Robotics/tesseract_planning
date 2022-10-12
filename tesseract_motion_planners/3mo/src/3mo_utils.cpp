@@ -6,6 +6,10 @@
 
 namespace tesseract_planning
 {
+
+unsigned int MAX_IK_CALC_NUM = 5000;
+unsigned int MAX_IK_QUEUE_NUM = 100;
+
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
                  std::string link_name,
                  Eigen::Isometry3d& tf,
@@ -84,7 +88,8 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
 }
 
 // seed here is the initial joint pose, not actual seed used for kinematics.
-std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinematics::KinematicGroup::Ptr manip,
+std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_environment::Environment::ConstPtr env,
+                                                               tesseract_kinematics::KinematicGroup::Ptr manip,
                                                                const MixedWaypointPoly& waypoint,
                                                                const std::string working_frame,
                                                                const Eigen::VectorXd& prev_joints,
@@ -104,8 +109,10 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
   {
     CONSOLE_BRIDGE_logInform("no cost coeff found, setting cost coeffs with 1");
     cost_coeff.setOnes(prev_joints.size());
-    cost_coeff[0] = 3;
-    cost_coeff[1] = 3;
+    // cost_coeff[6] = 2.;
+    cost_coeff[3] = 5.;
+    cost_coeff[0] = 2.;
+    cost_coeff[1] = 2.;
   }
   ss << cost_coeff.transpose();
   CONSOLE_BRIDGE_logInform("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
@@ -127,10 +134,12 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
     CONSOLE_BRIDGE_logDebug("adding kin group input: %s", ss.str().c_str());
     ik_inputs.push_back(tesseract_kinematics::KinGroupIKInput(link_target.second, working_frame, link_target.first));
   }
-  int retry = 0;
-  while (ik_with_cost_queue.size() < 400)
+  int retry_count = 0;
+  Eigen::VectorXd ik_seed = prev_joints;
+  while (retry_count < MAX_IK_CALC_NUM)
   {
-    Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+    retry_count++;
+    // Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
     // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
     // std::endl; std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
     // std::cout << fmt::format("kin group joint names: {}", manip->getAllPossibleTipLinkNames()).c_str() << std::endl;
@@ -146,9 +155,12 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
       throw e;
     }
 
-    for (const auto& res : result)
+    auto filtered_result = filterCollisionIK(env, manip, result);
+
+    for (const auto& res : filtered_result)
     {
       auto ik_refined = refineIK(manip, res, prev_joints);
+      // auto ik_refined = res;
       double cost = getIKCost(waypoint, ik_refined, prev_joints, cost_coeff);
       if (cost > 0)
         ik_with_cost_queue.emplace(ik_refined, cost);
@@ -158,29 +170,34 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
       for (const auto& redundant_sol : redundant_solutions)
       {
         ik_refined = refineIK(manip, redundant_sol, prev_joints);
+        // ik_refined = redundant_sol;
         cost = getIKCost(waypoint, ik_refined, prev_joints, cost_coeff);
         if (cost > 0)
           ik_with_cost_queue.emplace(ik_refined, cost);
       }
     }
 
-    if (ik_with_cost_queue.empty())
-    {
-      retry++;
-      if (retry > 5000)  // TODO: adjust the retry number
-        throw std::runtime_error("cannot find valid ik solution");
-    }
+    if (ik_with_cost_queue.size() > MAX_IK_QUEUE_NUM)
+      break;
+
+    // if (ik_with_cost_queue.empty())
+    // {
+    //   retry++;
+    //   if (retry > 5000)  // TODO: adjust the retry number
+    //     throw std::runtime_error("cannot find valid ik solution");
+    // }
+
+    ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
   }
-  std::stringstream buffer;
-  buffer << ik_with_cost_queue.top().ik.transpose();
-  std::stringstream coeff_buffer;
-  coeff_buffer << cost_coeff.transpose();
-  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f, coeff: %s",
-                          buffer.str().c_str(),
-                          ik_with_cost_queue.top().cost,
-                          coeff_buffer.str().c_str());
-  // reverse the ik with cost queue and return
+
   std::vector<std::pair<Eigen::VectorXd, double>> solutions;
+
+  if (ik_with_cost_queue.size() == 0)
+  {
+    ik_with_cost_queue.emplace(prev_joints, 1e6);
+    CONSOLE_BRIDGE_logWarn("Fail to find feasible ik, use currect pose.");
+  }
+
   while (ik_with_cost_queue.size() > 0)
   {
     // solutions.insert(solutions.begin(), ik_with_cost_queue.top().ik);
@@ -188,6 +205,17 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinemat
     solutions.push_back(std::make_pair(ik_with_cost_queue.top().ik, ik_with_cost_queue.top().cost));
     ik_with_cost_queue.pop();
   }
+
+  std::stringstream buffer;
+  buffer << solutions.front().first.transpose();
+  std::stringstream coeff_buffer;
+  coeff_buffer << cost_coeff.transpose();
+  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f, coeff: %s",
+                          buffer.str().c_str(),
+                          solutions.front().second,
+                          coeff_buffer.str().c_str());
+  // reverse the ik with cost queue and return
+
   return solutions;
 
   // get more than 1000 ik solutions
@@ -201,7 +229,7 @@ double getIKCost(const MixedWaypointPoly& wp,
   assert(target.size() == base.size() && target.size() == cost_coefficient.size());
   double cost = 0;
   cost += (target - base).cwiseProduct(cost_coefficient).array().abs().sum();
-  double ik_goal_cost = getIKGoalCost(target, wp, 0.1);
+  double ik_goal_cost = getIKGoalCost(target, wp, 0.2);
   if (ik_goal_cost < 0)
   {
     return -1.0;
@@ -252,6 +280,8 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
   tesseract_collision::ContactResultMap best_contact_result;
   tesseract_collision::DiscreteContactManager::Ptr contact_manager = env->getDiscreteContactManager()->clone();
   size_t best_collision_count = 1000;
+  if (ik_input.size() == 0)
+    return ik_input;
   Eigen::VectorXd best_solution = ik_input.at(0);
   for (auto const& ik : ik_input)
   {
@@ -275,17 +305,17 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
     }
   }
 
-  if (result.empty())
-  {
-    CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result. best collision count: %d",
-                           best_collision_count);
-    for (auto& collision : best_contact_result)
-    {
-      std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
-    }
-    result.push_back(best_solution);
-  }
-  CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", result.size(), ik_input.size());
+  // if (result.empty())
+  // {
+  //   CONSOLE_BRIDGE_logWarn("ik solution is empty, saving best solution into result. best collision count: %d",
+  //                          best_collision_count);
+  //   for (auto& collision : best_contact_result)
+  //   {
+  //     std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+  //   }
+  //   result.push_back(best_solution);
+  // }
+  // CONSOLE_BRIDGE_logDebug("collision free ik: %ld/%ld", result.size(), ik_input.size());
 
   return result;
 }
@@ -347,22 +377,27 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
   Eigen::VectorXd ik_refined = ik_result;
   for (const auto idx : manip->getRedundancyCapableJointIndices())
   {
-    if (ik_result[idx] > init_config[idx])
+    if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
+        manip->getJointNames()[idx] == "base_link_base_theta" ||
+        manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint")
     {
-      if (ik_refined[idx] - init_config[idx] > M_PI)
+      if (ik_result[idx] > init_config[idx])
       {
-        ik_refined[idx] -= 2.0 * M_PI;
-        if (!manip->checkJoints(ik_refined))
-          ik_refined[idx] += 2.0 * M_PI;
-      }
-    }
-    else
-    {
-      if (init_config[idx] - ik_result[idx] > M_PI)
-      {
-        ik_refined[idx] += 2.0 * M_PI;
-        if (!manip->checkJoints(ik_refined))
+        if (ik_refined[idx] - init_config[idx] > M_PI)
+        {
           ik_refined[idx] -= 2.0 * M_PI;
+          if (!manip->checkJoints(ik_refined))
+            ik_refined[idx] += 2.0 * M_PI;
+        }
+      }
+      else
+      {
+        if (init_config[idx] - ik_result[idx] > M_PI)
+        {
+          ik_refined[idx] += 2.0 * M_PI;
+          if (!manip->checkJoints(ik_refined))
+            ik_refined[idx] -= 2.0 * M_PI;
+        }
       }
     }
   }

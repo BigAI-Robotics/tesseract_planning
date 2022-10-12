@@ -25,7 +25,8 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
                                          const std::string working_frame,
                                          double tolerance = 0.2);
 
-std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(tesseract_kinematics::KinematicGroup::Ptr manip,
+std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_environment::Environment::ConstPtr env,
+                                                               tesseract_kinematics::KinematicGroup::Ptr manip,
                                                                const MixedWaypointPoly& waypoint,
                                                                const std::string working_frame,
                                                                const Eigen::VectorXd& prev_joints,
