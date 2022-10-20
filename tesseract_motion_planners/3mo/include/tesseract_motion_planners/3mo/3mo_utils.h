@@ -20,7 +20,9 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
                  Eigen::Isometry3d& tf,
                  tesseract_collision::ContactResultMap& contact_results);
 
-tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::Ptr manip,
+tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environment::ConstPtr env,
+                                         tesseract_kinematics::KinematicGroup::Ptr manip,
+                                         Eigen::VectorXd prev_joint,
                                          const MixedWaypointPoly& waypoint,
                                          const std::string working_frame,
                                          double tolerance = 0.2);
@@ -53,6 +55,10 @@ filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
                   std::vector<std::pair<Eigen::VectorXd, double>> ik_input);
 
 Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
+                         const Eigen::VectorXd& ik_result,
+                         const Eigen::VectorXd& init_config);
+
+std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr manip,
                          const Eigen::VectorXd& ik_result,
                          const Eigen::VectorXd& init_config);
 
