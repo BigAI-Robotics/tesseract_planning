@@ -7,7 +7,7 @@
 namespace tesseract_planning
 {
 
-unsigned int MAX_IK_CALC_NUM = 5000;
+unsigned int MAX_IK_CALC_NUM = 20000;
 unsigned int MAX_IK_QUEUE_NUM = 100;
 
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
@@ -110,9 +110,9 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
     CONSOLE_BRIDGE_logInform("no cost coeff found, setting cost coeffs with 1");
     cost_coeff.setOnes(prev_joints.size());
     // cost_coeff[6] = 2.;
-    cost_coeff[3] = 5.;
-    cost_coeff[0] = 2.;
-    cost_coeff[1] = 2.;
+    // cost_coeff[3] = 5.;
+    // cost_coeff[0] = 2.;
+    // cost_coeff[1] = 2.;
   }
   ss << cost_coeff.transpose();
   CONSOLE_BRIDGE_logInform("getting ik with heuristic for mixed waypoint with cost coeff %s", ss.str().c_str());
@@ -273,7 +273,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,
                                                     tesseract_kinematics::IKSolutions ik_input)
 {
-  CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
+  // CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
   tesseract_kinematics::IKSolutions result;
   // check collision
   tesseract_collision::ContactResultMap contact_result;
@@ -379,7 +379,8 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
   {
     if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
         manip->getJointNames()[idx] == "base_link_base_theta" ||
-        manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint")
+        manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint"||
+        manip->getJointNames()[idx] == "ur_arm_shoulder_pan_joint")
     {
       if (ik_result[idx] > init_config[idx])
       {
