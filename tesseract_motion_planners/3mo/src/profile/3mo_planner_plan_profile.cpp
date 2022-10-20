@@ -286,6 +286,14 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
         -map_.map_x / 2.0 + coordinate.x * map_.step_size, -map_.map_y / 2.0 + coordinate.y * map_.step_size, 0.13);
     base_poses_raw.push_back(base_target);
   }
+  if (path.size() == 1)  // start and goal at same position
+  {
+    for (size_t i = 0; i < n_steps; ++i)
+    {
+      base_poses.push_back(base_poses_raw.front());
+    }
+    return;
+  }
   std::reverse(base_poses_raw.begin(), base_poses_raw.end());
 
   // CONSOLE_BRIDGE_logDebug("base poses generated: \n");
@@ -316,9 +324,14 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
         pow(pow(base_poses_raw[idx_2].translation()[0] - base_poses_raw[idx_1].translation()[0], 2.0) +
                 pow(base_poses_raw[idx_2].translation()[1] - base_poses_raw[idx_1].translation()[1], 2.0),
             0.5);
-    double grad_x = (base_poses_raw[idx_2].translation()[0] - base_poses_raw[idx_1].translation()[0]) / waypoints_len;
-    double grad_y = (base_poses_raw[idx_2].translation()[1] - base_poses_raw[idx_1].translation()[1]) / waypoints_len;
 
+    double grad_x = 0;
+    double grad_y = 0;
+    if (waypoints_len > 0)
+    {
+      grad_x = (base_poses_raw[idx_2].translation()[0] - base_poses_raw[idx_1].translation()[0]) / waypoints_len;
+      grad_y = (base_poses_raw[idx_2].translation()[1] - base_poses_raw[idx_1].translation()[1]) / waypoints_len;
+    }
     pose.translation()[0] = base_poses_raw[idx_1].translation()[0] + grad_x * rem * waypoints_len;
     pose.translation()[1] = base_poses_raw[idx_1].translation()[1] + grad_y * rem * waypoints_len;
     if (std::isnan(pose.translation()[0]) || std::isnan(pose.translation()[1]) || idx_2 > base_poses_raw.size())
