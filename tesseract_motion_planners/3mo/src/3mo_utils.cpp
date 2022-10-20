@@ -8,7 +8,7 @@ namespace tesseract_planning
 {
 
 unsigned int MAX_IK_CALC_NUM = 5000;
-unsigned int MAX_IK_QUEUE_NUM = 100;
+unsigned int MAX_IK_QUEUE_NUM = 50;
 
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
                  std::string link_name,
@@ -29,7 +29,9 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
   return true;
 }
 
-tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::Ptr manip,
+tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environment::ConstPtr env,
+                                         tesseract_kinematics::KinematicGroup::Ptr manip,
+                                         Eigen::VectorXd prev_joints,
                                          const MixedWaypointPoly& waypoint,
                                          const std::string working_frame,
                                          double tolerance)
@@ -44,9 +46,10 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
   }
   tesseract_kinematics::IKSolutions solutions;
   int retry = 0;
-  while (solutions.size() < 200)
+  Eigen::VectorXd ik_seed = prev_joints;
+  Eigen::VectorXd prev_ik_seed_ = prev_joints;
+  while (solutions.size() < MAX_IK_QUEUE_NUM)
   {
-    Eigen::VectorXd ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
     // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
     // std::endl; std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
     // std::cout << fmt::format("kin group joint names: {}", manip->getAllPossibleTipLinkNames()).c_str() << std::endl;
@@ -62,28 +65,49 @@ tesseract_kinematics::IKSolutions getIKs(tesseract_kinematics::KinematicGroup::P
       throw e;
     }
 
+    auto filtered_result = filterCollisionIK(env, manip, result);
     // std::cout << "result length: " << result.size() << std::endl;
-    for (const auto& res : result)
+    for (const auto& res : filtered_result)
     {
       if (getIKGoalCost(res, waypoint, tolerance) >= 0)
-        solutions.push_back(res);
-      auto redundant_solutions =
-          tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
-      for (const auto& redundant_sol : redundant_solutions)
       {
-        if (getIKGoalCost(redundant_sol, waypoint, tolerance) >= 0)
-          solutions.push_back(redundant_sol);
+        // auto ik_refined = refineIK(manip, res, prev_joints);
+        // assert(ik_refined.size() > 0);
+        // solutions.push_back(ik_refined);
+        for (const auto& ik_refined : refineIK2(manip, res, prev_joints))
+        {
+          assert(ik_refined.size() > 0);
+          solutions.push_back(ik_refined);
+        }
       }
+      // auto redundant_solutions =
+      //     tesseract_kinematics::getRedundantSolutions<double>(res, limits.joint_limits, redundancy_indices);
+      // for (const auto& redundant_sol : redundant_solutions)
+      // {
+      //   if (getIKGoalCost(redundant_sol, waypoint, tolerance) >= 0)
+      //   {
+      //     auto ik_refined = refineIK(manip, redundant_sol, prev_joints);
+      //     assert(ik_refined.size() > 0);
+      //     solutions.push_back(ik_refined);
+      //   }
+      // }
     }
 
     if (solutions.empty())
     {
       retry++;
-      if (retry > 5000)  // TODO: adjust the retry number
+      if (retry > MAX_IK_CALC_NUM)  // TODO: adjust the retry number
         throw std::runtime_error("cannot find valid ik solution");
+    }
+    prev_ik_seed_ = ik_seed;
+    ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
+    if (prev_ik_seed_ == ik_seed)
+    {
+      CONSOLE_BRIDGE_logWarn("prev ik seed is same as new ik seed");
     }
   }
 
+  // std::cout << solutions.size() << std::endl;
   return solutions;
 }
 
@@ -122,7 +146,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
   // }
   // MixedWaypoint wp = info.instruction.getWaypoint().as<MixedWaypoint>();
 
-  // ik_with_cost_queue is reversed when inserting elements(larger cost will be poped first)
+  // ik_with_cost_queue is reversed when inserting elements(larger cost will be poped first), so we need greater
   std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> ik_with_cost_queue;
   tesseract_kinematics::KinGroupIKInputs ik_inputs;
   for (auto link_target : waypoint.getLinkTargets())
@@ -180,16 +204,10 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
     if (ik_with_cost_queue.size() > MAX_IK_QUEUE_NUM)
       break;
 
-    // if (ik_with_cost_queue.empty())
-    // {
-    //   retry++;
-    //   if (retry > 5000)  // TODO: adjust the retry number
-    //     throw std::runtime_error("cannot find valid ik solution");
-    // }
-
     ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
   }
-
+ 
+  // reverse the ik with cost queue and return
   std::vector<std::pair<Eigen::VectorXd, double>> solutions;
 
   if (ik_with_cost_queue.size() == 0)
@@ -210,10 +228,8 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
   buffer << solutions.front().first.transpose();
   std::stringstream coeff_buffer;
   coeff_buffer << cost_coeff.transpose();
-  CONSOLE_BRIDGE_logDebug("best ik: %s\ncost: %f, coeff: %s",
-                          buffer.str().c_str(),
-                          solutions.front().second,
-                          coeff_buffer.str().c_str());
+  CONSOLE_BRIDGE_logDebug(
+      "best ik: %s\ncost: %f, coeff: %s", buffer.str().c_str(), solutions.front().second, coeff_buffer.str().c_str());
   // reverse the ik with cost queue and return
 
   return solutions;
@@ -273,7 +289,7 @@ tesseract_kinematics::IKSolutions filterCollisionIK(const tesseract_environment:
                                                     tesseract_kinematics::KinematicGroup::Ptr kin_group,
                                                     tesseract_kinematics::IKSolutions ik_input)
 {
-  CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
+  // CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
   tesseract_kinematics::IKSolutions result;
   // check collision
   tesseract_collision::ContactResultMap contact_result;
@@ -325,7 +341,7 @@ filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
                   tesseract_kinematics::KinematicGroup::Ptr kin_group,
                   std::vector<std::pair<Eigen::VectorXd, double>> ik_input)
 {
-  CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
+  // CONSOLE_BRIDGE_logDebug("filtering ik with collision...");
   std::vector<std::pair<Eigen::VectorXd, double>> result;
   // check collision
   tesseract_collision::ContactResultMap contact_result;
@@ -386,7 +402,7 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
         if (ik_refined[idx] - init_config[idx] > M_PI)
         {
           ik_refined[idx] -= 2.0 * M_PI;
-          if (!manip->checkJoints(ik_refined))
+          if (!tesseract_common::satisfiesPositionLimits<double>(ik_refined, manip->getLimits().joint_limits))
             ik_refined[idx] += 2.0 * M_PI;
         }
       }
@@ -395,7 +411,7 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
         if (init_config[idx] - ik_result[idx] > M_PI)
         {
           ik_refined[idx] += 2.0 * M_PI;
-          if (!manip->checkJoints(ik_refined))
+          if (!tesseract_common::satisfiesPositionLimits<double>(ik_refined, manip->getLimits().joint_limits))
             ik_refined[idx] -= 2.0 * M_PI;
         }
       }
@@ -403,6 +419,44 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
   }
 
   return ik_refined;
+}
+
+std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr manip,
+                                       const Eigen::VectorXd& ik_result,
+                                       const Eigen::VectorXd& init_config)
+{
+  auto redundancy_indices = manip->getRedundancyCapableJointIndices();
+  auto redundant_solutions = tesseract_kinematics::getRedundantSolutions<double>(
+      ik_result, manip->getLimits().joint_limits, redundancy_indices);
+
+  redundant_solutions.push_back(ik_result);
+  std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> solutions;
+  for (const auto& redundant_sol : redundant_solutions)
+  {
+    auto diff = redundant_sol - init_config;
+    bool is_valid = true;
+    for (const auto idx : manip->getRedundancyCapableJointIndices())
+    {
+      if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
+          manip->getJointNames()[idx] == "base_link_base_theta" ||
+          manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint")
+      {
+        if (abs(redundant_sol[idx] - init_config[idx]) > M_PI)
+          is_valid = false;
+      }
+    }
+    double cost = diff.matrix().norm();
+    if (!is_valid)
+      cost += 100;
+    solutions.emplace(redundant_sol, cost);
+  }
+  std::vector<Eigen::VectorXd> result;
+  for (int i = 0; i < 2; i++)
+  {
+    result.push_back(solutions.top().ik);
+    solutions.pop();
+  }
+  return result;
 }
 
 }  // namespace tesseract_planning
