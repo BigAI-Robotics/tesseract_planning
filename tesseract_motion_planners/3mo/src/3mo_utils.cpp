@@ -206,7 +206,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
 
     ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
   }
- 
+
   // reverse the ik with cost queue and return
   std::vector<std::pair<Eigen::VectorXd, double>> solutions;
 
@@ -395,7 +395,7 @@ Eigen::VectorXd refineIK(tesseract_kinematics::KinematicGroup::Ptr manip,
   {
     if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
         manip->getJointNames()[idx] == "base_link_base_theta" ||
-        manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint"||
+        manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint" ||
         manip->getJointNames()[idx] == "ur_arm_shoulder_pan_joint")
     {
       if (ik_result[idx] > init_config[idx])
@@ -440,7 +440,8 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
     {
       if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
           manip->getJointNames()[idx] == "base_link_base_theta" ||
-          manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint")
+          manip->getJointNames()[idx] == "right_arm_shoulder_lift_joint" ||
+          manip->getJointNames()[idx] == "ur_arm_shoulder_pan_joint")
       {
         if (abs(redundant_sol[idx] - init_config[idx]) > M_PI)
           is_valid = false;
