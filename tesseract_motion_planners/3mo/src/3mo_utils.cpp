@@ -15,6 +15,7 @@ bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_conta
                  Eigen::Isometry3d& tf,
                  tesseract_collision::ContactResultMap& contact_results)
 {
+  assert(discrete_contact_manager != nullptr);
   discrete_contact_manager->setCollisionObjectsTransform(link_name, tf);
   discrete_contact_manager->contactTest(contact_results, tesseract_collision::ContactTestType::ALL);
   for (auto& collision : contact_results)
