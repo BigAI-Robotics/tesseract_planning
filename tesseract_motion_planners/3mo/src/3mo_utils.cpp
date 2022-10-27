@@ -7,8 +7,8 @@
 namespace tesseract_planning
 {
 
-unsigned int MAX_IK_CALC_NUM = 20000;
-unsigned int MAX_IK_QUEUE_NUM = 100;
+unsigned int MAX_IK_CALC_NUM = 2000;
+unsigned int MAX_IK_QUEUE_NUM = 50;
 
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
                  std::string link_name,
@@ -356,10 +356,10 @@ filterCollisionIK(tesseract_environment::Environment::ConstPtr env,
     auto current_state = env->getState(kin_group->getJointNames(), ik.first);
     contact_manager->setCollisionObjectsTransform(current_state.link_transforms);
     contact_manager->contactTest(contact_result, tesseract_collision::ContactTestType::ALL);
-    // for (auto& collision : contact_result)
-    // {
-    //   std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
-    // }
+    for (auto& collision : contact_result)
+    {
+      std::cout << "\t" << collision.first.first << " -->|<-- " << collision.first.second << std::endl;
+    }
     if (contact_result.size() <= best_collision_count)
     {
       best_collision_count = contact_result.size();
@@ -433,8 +433,10 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
 
   redundant_solutions.push_back(ik_result);
   std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> solutions;
+  std::cout << "redundant_solutions size: " << redundant_solutions.size() << std::endl;
   for (const auto& redundant_sol : redundant_solutions)
   {
+    std::cout << redundant_sol.transpose() << std::endl;
     auto diff = redundant_sol - init_config;
     bool is_valid = true;
     for (const auto idx : manip->getRedundancyCapableJointIndices())
@@ -454,7 +456,7 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
     solutions.emplace(redundant_sol, cost);
   }
   std::vector<Eigen::VectorXd> result;
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < redundant_solutions.size(); i++)
   {
     result.push_back(solutions.top().ik);
     solutions.pop();
