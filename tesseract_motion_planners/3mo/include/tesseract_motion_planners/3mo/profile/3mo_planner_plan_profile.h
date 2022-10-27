@@ -42,20 +42,6 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_planning
 {
-struct MapInfo
-{
-  int map_x;
-  int map_y;
-  double step_size;
-  int grid_size_x;
-  int grid_size_y;
-
-  MapInfo(int x = 15, int y = 15, double step = 0.4) : map_x(x), map_y(y), step_size(step)
-  {
-    grid_size_x = int(map_x / step_size) + 1;
-    grid_size_y = int(map_y / step_size) + 1;
-  }
-};
 
 class MMMOPlannerPlanProfile : public MMMOPlanProfile
 {
@@ -205,7 +191,7 @@ protected:
                                     tesseract_kinematics::KinematicGroup::Ptr kin_group) const;
 
   void initBaseTrajectory_(tesseract_kinematics::KinematicGroup::Ptr kin_group,
-                           tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
+                           tesseract_environment::Environment::ConstPtr env,
                            const Eigen::VectorXd& joint_start,
                            const Eigen::VectorXd& joint_target,
                            std::vector<Eigen::Isometry3d>& base_poses,

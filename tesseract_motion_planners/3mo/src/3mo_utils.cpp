@@ -10,6 +10,56 @@ namespace tesseract_planning
 unsigned int MAX_IK_CALC_NUM = 20000;
 unsigned int MAX_IK_QUEUE_NUM = 100;
 
+void setupAstarGenerator(AStar::Generator& generator,
+                         tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
+                         const MapInfo& map,
+                         const std::string& base_link_name,
+                         double base_link_z)
+{
+  generator.setWorldSize({ map.grid_size_x, map.grid_size_y });
+  generator.setHeuristic(AStar::Heuristic::euclidean);
+  generator.setDiagonalMovement(true);
+
+  CONSOLE_BRIDGE_logDebug("map info: %d, %d, stepsize: %f, base link: %s, base link z: %f",
+                          map.grid_size_x,
+                          map.grid_size_y,
+                          map.step_size,
+                          base_link_name.c_str(),
+                          base_link_z);
+
+  tesseract_collision::ContactResultMap contact_results;
+  Eigen::Isometry3d base_tf;
+
+  for (int x = 0; x < map.grid_size_x; ++x)
+  {
+    for (int y = 0; y < map.grid_size_y; ++y)
+    {
+      base_tf.setIdentity();
+      contact_results.clear();
+      base_tf.translation() =
+          Eigen::Vector3d(-map.map_x / 2.0 + x * map.step_size, -map.map_y / 2.0 + y * map.step_size, base_link_z);
+      if (!tesseract_planning::isEmptyCell(discrete_contact_manager,
+                                           base_link_name, base_tf,
+                                           contact_results) /*&&
+          (!(x == base_x && y == base_y) && !(x == end_x && y == end_y))*/)
+      {
+        // std::cout << "o";
+        // std::cout << x << ":\t" << y << std::endl;
+        generator.addCollision({ x, y });
+        // } else if (x == base_x && y == base_y) {
+        // std::cout << "S";
+        // } else if (x == end_x && y == end_y) {
+        // std::cout << "G";
+      }
+      else
+      {
+        // std::cout << "+";
+      }
+    }
+    // std::cout << std::endl;
+  }
+}
+
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
                  std::string link_name,
                  Eigen::Isometry3d& tf,
@@ -440,7 +490,7 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
   {
     // std::cout << redundant_sol.transpose() << std::endl;
     auto diff = redundant_sol - init_config;
-    bool is_valid = true;
+    double cost = diff.matrix().norm();
     for (const auto idx : manip->getRedundancyCapableJointIndices())
     {
       if (manip->getJointNames()[idx] == "right_arm_shoulder_pan_joint" ||
@@ -449,18 +499,17 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
           manip->getJointNames()[idx] == "ur_arm_shoulder_pan_joint")
       {
         if (abs(redundant_sol[idx] - init_config[idx]) > M_PI)
-          is_valid = false;
+          cost += 1e3;
       }
     }
-    double cost = diff.matrix().norm();
-    if (!is_valid)
-      cost += 100;
+    std::cout << "diff: " << diff.transpose() << std::endl << "norm: " << cost << std::endl;
     solutions.emplace(redundant_sol, cost);
   }
   std::vector<Eigen::VectorXd> result;
   for (int i = 0; i < redundant_solutions.size(); i++)
   {
     result.push_back(solutions.top().ik);
+    std::cout << solutions.top().cost << ": " << solutions.top().ik.transpose() << std::endl;
     solutions.pop();
   }
   return result;

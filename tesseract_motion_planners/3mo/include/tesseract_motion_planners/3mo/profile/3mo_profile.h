@@ -33,6 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_motion_planners/core/types.h>
+#include <tesseract_motion_planners/3mo/3mo_utils.h>
 #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
 
 #ifdef SWIG

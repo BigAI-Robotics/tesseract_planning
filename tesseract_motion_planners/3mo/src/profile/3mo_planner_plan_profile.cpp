@@ -159,20 +159,12 @@ Eigen::MatrixXd MMMOPlannerPlanProfile::getJointJointSeed(const Eigen::VectorXd&
                                                           const PlannerRequest& request,
                                                           KinematicGroup::Ptr kin_group) const
 {
-  tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager_ =
-      std::move(request.env->getDiscreteContactManager()->clone());
-  for (auto& active_link : discrete_contact_manager_->getCollisionObjects())
-  {
-    // std::cout << active_link << std::endl;
-    discrete_contact_manager_->enableCollisionObject(active_link);
-  }
-
   std::vector<Eigen::Isometry3d> base_poses;
   int steps = min_steps;
   Eigen::MatrixXd states = interpolate(joint_start, joint_target, steps);
   if (!base_joint_.first.empty() && !base_joint_.second.empty())
   {
-    initBaseTrajectory_(kin_group, discrete_contact_manager_, joint_start, joint_target, base_poses, steps);
+    initBaseTrajectory_(kin_group, request.env, joint_start, joint_target, base_poses, steps);
     auto joint_names = kin_group->getJointNames();
     auto find_result = std::find(joint_names.begin(), joint_names.end(), base_joint_.first);
     assert(find_result != joint_names.end());
@@ -195,14 +187,20 @@ Eigen::MatrixXd MMMOPlannerPlanProfile::getJointJointSeed(const Eigen::VectorXd&
   return states;
 }
 
-void MMMOPlannerPlanProfile::initBaseTrajectory_(
-    KinematicGroup::Ptr kin_group,
-    tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
-    const Eigen::VectorXd& joint_start,
-    const Eigen::VectorXd& joint_target,
-    std::vector<Eigen::Isometry3d>& base_poses,
-    int n_steps) const
+void MMMOPlannerPlanProfile::initBaseTrajectory_(KinematicGroup::Ptr kin_group,
+                                                 tesseract_environment::Environment::ConstPtr env,
+                                                 const Eigen::VectorXd& joint_start,
+                                                 const Eigen::VectorXd& joint_target,
+                                                 std::vector<Eigen::Isometry3d>& base_poses,
+                                                 int n_steps) const
 {
+  tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager_ =
+      std::move(env->getDiscreteContactManager()->clone());
+  for (auto& active_link : discrete_contact_manager_->getCollisionObjects())
+  {
+    // std::cout << active_link << std::endl;
+    discrete_contact_manager_->enableCollisionObject(active_link);
+  }
   // std::cout << "map step size: " << map_.step_size << std::endl;
   tesseract_collision::ContactResultMap contact_results;
   // init base trajectory
@@ -225,7 +223,7 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   {
     if (link_name != "base_link" && link_name != "world")
     {
-      if (!discrete_contact_manager->removeCollisionObject(link_name))
+      if (!discrete_contact_manager_->removeCollisionObject(link_name))
       {
         // ROS_WARN("Unable to remove collision object: %s", link_name.c_str());
       }
@@ -233,48 +231,18 @@ void MMMOPlannerPlanProfile::initBaseTrajectory_(
   }
 
   AStar::Generator astar_generator;
-  astar_generator.setWorldSize({ map_.grid_size_x, map_.grid_size_y });
-  astar_generator.setHeuristic(AStar::Heuristic::euclidean);
-  astar_generator.setDiagonalMovement(true);
 
-  CONSOLE_BRIDGE_logDebug("map info: %d, %d, stepsize: %f", map_.grid_size_x, map_.grid_size_y, map_.step_size);
-  CONSOLE_BRIDGE_logDebug("S/G info: %d, %d / %d, %d", base_x, base_y, end_x, end_y);
-
-  // add collisions
-  for (int x = 0; x < map_.grid_size_x; ++x)
-  {
-    for (int y = 0; y < map_.grid_size_y; ++y)
-    {
-      base_tf.setIdentity();
-      contact_results.clear();
-      base_tf.translation() =
-          Eigen::Vector3d(-map_.map_x / 2.0 + x * map_.step_size, -map_.map_y / 2.0 + y * map_.step_size, 0.145);
-      if (!isEmptyCell(discrete_contact_manager, "base_link", base_tf, contact_results) &&
-          (!(x == base_x && y == base_y) && !(x == end_x && y == end_y)))
-      {
-        // std::cout << "o";
-        // std::cout << x << ":\t" << y << std::endl;
-        astar_generator.addCollision({ x, y });
-      }
-      else if (x == base_x && y == base_y)
-      {
-        // std::cout << "S";
-      }
-      else if (x == end_x && y == end_y)
-      {
-        // std::cout << "G";
-      }
-      else
-      {
-        // std::cout << "+";
-      }
-    }
-    // std::cout << "" << std::endl;
-  }
+  setupAstarGenerator(astar_generator,
+                      discrete_contact_manager_,
+                      map_,
+                      "base_link",
+                      env->getLinkTransform("base_link").translation()[2]);
 
   // generate path
   std::vector<Eigen::Isometry3d> base_poses_raw;
-
+  CONSOLE_BRIDGE_logDebug("S/G info: %d, %d / %d, %d", base_x, base_y, end_x, end_y);
+  astar_generator.removeCollision({ base_x, base_y });
+  astar_generator.removeCollision({ end_x, end_y });
   auto path = astar_generator.findPath({ base_x, base_y }, { end_x, end_y });
   base_poses_raw.clear();
   base_poses.clear();
