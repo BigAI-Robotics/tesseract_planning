@@ -7,8 +7,8 @@
 namespace tesseract_planning
 {
 
-unsigned int MAX_IK_CALC_NUM = 2000;
-unsigned int MAX_IK_QUEUE_NUM = 50;
+unsigned int MAX_IK_CALC_NUM = 20000;
+unsigned int MAX_IK_QUEUE_NUM = 100;
 
 bool isEmptyCell(tesseract_collision::DiscreteContactManager::Ptr discrete_contact_manager,
                  std::string link_name,
@@ -49,7 +49,7 @@ tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environmen
   int retry = 0;
   Eigen::VectorXd ik_seed = prev_joints;
   Eigen::VectorXd prev_ik_seed_ = prev_joints;
-  while (solutions.size() < MAX_IK_QUEUE_NUM)
+  while (retry < MAX_IK_CALC_NUM)
   {
     // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
     // std::endl; std::cout << fmt::format("kin group joint names: {}", manip->getJointNames()).c_str() << std::endl;
@@ -93,21 +93,23 @@ tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environmen
       //   }
       // }
     }
+    retry++;
 
-    if (solutions.empty())
-    {
-      retry++;
-      if (retry > MAX_IK_CALC_NUM)  // TODO: adjust the retry number
-        throw std::runtime_error("cannot find valid ik solution");
-    }
+    if (solutions.size() > MAX_IK_QUEUE_NUM)
+      break;
+
     prev_ik_seed_ = ik_seed;
     ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
     if (prev_ik_seed_ == ik_seed)
     {
       CONSOLE_BRIDGE_logWarn("prev ik seed is same as new ik seed");
     }
+    // std::cout << "number of solutions found: " << solutions.size() << ", retries: " << retry << std::endl;
   }
-
+  if (solutions.empty())
+  {
+    throw std::runtime_error("cannot find valid ik solution");
+  }
   // std::cout << solutions.size() << std::endl;
   return solutions;
 }
@@ -433,10 +435,10 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
 
   redundant_solutions.push_back(ik_result);
   std::priority_queue<IKWithCost, std::vector<IKWithCost>, std::greater<IKWithCost>> solutions;
-  std::cout << "redundant_solutions size: " << redundant_solutions.size() << std::endl;
+  // std::cout << "redundant_solutions size: " << redundant_solutions.size() << std::endl;
   for (const auto& redundant_sol : redundant_solutions)
   {
-    std::cout << redundant_sol.transpose() << std::endl;
+    // std::cout << redundant_sol.transpose() << std::endl;
     auto diff = redundant_sol - init_config;
     bool is_valid = true;
     for (const auto idx : manip->getRedundancyCapableJointIndices())
