@@ -143,24 +143,23 @@ tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environmen
       //   }
       // }
     }
-    retry++;
-
-    if (solutions.size() > MAX_IK_QUEUE_NUM)
-      break;
-
     prev_ik_seed_ = ik_seed;
     ik_seed = tesseract_common::generateRandomNumber(limits.joint_limits);
     if (prev_ik_seed_ == ik_seed)
     {
       CONSOLE_BRIDGE_logWarn("prev ik seed is same as new ik seed");
     }
-    // std::cout << "number of solutions found: " << solutions.size() << ", retries: " << retry << std::endl;
+    std::cout << "\r" << "number of solutions found: " << solutions.size() << ", retries: " << retry;
+    retry++;
+
+    if (solutions.size() > MAX_IK_QUEUE_NUM)
+      break;
   }
   if (solutions.empty())
   {
     throw std::runtime_error("cannot find valid ik solution");
   }
-  // std::cout << solutions.size() << std::endl;
+  std::cout << std::endl;
   return solutions;
 }
 
@@ -502,14 +501,14 @@ std::vector<Eigen::VectorXd> refineIK2(tesseract_kinematics::KinematicGroup::Ptr
           cost += 1e3;
       }
     }
-    std::cout << "diff: " << diff.transpose() << std::endl << "norm: " << cost << std::endl;
+    // std::cout << "diff: " << diff.transpose() << std::endl << "norm: " << cost << std::endl;
     solutions.emplace(redundant_sol, cost);
   }
   std::vector<Eigen::VectorXd> result;
   for (int i = 0; i < redundant_solutions.size(); i++)
   {
     result.push_back(solutions.top().ik);
-    std::cout << solutions.top().cost << ": " << solutions.top().ik.transpose() << std::endl;
+    // std::cout << solutions.top().cost << ": " << solutions.top().ik.transpose() << std::endl;
     solutions.pop();
   }
   return result;
