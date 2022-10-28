@@ -178,7 +178,7 @@ std::vector<std::pair<Eigen::VectorXd, double>> getIKsWithCost(const tesseract_e
   Eigen::VectorXd cost_coeff;
   if (cost_coefficient_input.size())
   {
-    assert(cost_coefficient_input.size() == prev_joints.size());
+    // assert(cost_coefficient_input.size() == prev_joints.size());
     cost_coeff = cost_coefficient_input;
   }
   else
@@ -294,9 +294,9 @@ double getIKCost(const MixedWaypointPoly& wp,
                  const Eigen::VectorXd& base,
                  const Eigen::VectorXd& cost_coefficient)
 {
-  assert(target.size() == base.size() && target.size() == cost_coefficient.size());
+  // assert(target.size() == base.size() && target.size() == cost_coefficient.size());
   double cost = 0;
-  cost += (target - base).cwiseProduct(cost_coefficient).array().abs().sum();
+  cost += (target.head(9) - base.head(9)).cwiseProduct(cost_coefficient.head(9)).array().abs().sum();
   double ik_goal_cost = getIKGoalCost(target, wp, 0.2);
   if (ik_goal_cost < 0)
   {
