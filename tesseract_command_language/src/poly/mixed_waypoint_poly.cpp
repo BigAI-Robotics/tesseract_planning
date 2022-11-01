@@ -91,6 +91,14 @@ void tesseract_planning::MixedWaypointPoly::addLinkConstraint(std::string link_n
 {
   getInterface().addLinkConstraint(link_name, link_tf);
 }
+
+void tesseract_planning::MixedWaypointPoly::addLinkConstraint(std::string link_name,
+                                                              Eigen::Isometry3d& link_tf,
+                                                              const Eigen::VectorXd& coeff)
+{
+  getInterface().addLinkConstraint(link_name, link_tf, coeff);
+}
+
 std::map<std::string, tesseract_planning::detail_mixed_waypoint::CartesianConstraint>
 tesseract_planning::MixedWaypointPoly::getLinkConstraints()
 {
