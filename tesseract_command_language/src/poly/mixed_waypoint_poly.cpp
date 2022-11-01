@@ -91,12 +91,14 @@ void tesseract_planning::MixedWaypointPoly::addLinkConstraint(std::string link_n
 {
   getInterface().addLinkConstraint(link_name, link_tf);
 }
-std::map<std::string, Eigen::Isometry3d> tesseract_planning::MixedWaypointPoly::getLinkConstraints()
+std::map<std::string, tesseract_planning::detail_mixed_waypoint::CartesianConstraint>
+tesseract_planning::MixedWaypointPoly::getLinkConstraints()
 {
   return getInterface().getLinkConstraints();
 }
 
-const std::map<std::string, Eigen::Isometry3d> tesseract_planning::MixedWaypointPoly::getLinkConstraints() const
+const std::map<std::string, tesseract_planning::detail_mixed_waypoint::CartesianConstraint>
+tesseract_planning::MixedWaypointPoly::getLinkConstraints() const
 {
   return getInterface().getLinkConstraints();
 }

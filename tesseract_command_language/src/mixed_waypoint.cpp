@@ -96,11 +96,20 @@ const std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkTargets() c
 
 void MixedWaypoint::addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf)
 {
-  link_constraints_[link_name] = link_tf;
+  detail_mixed_waypoint::CartesianConstraint constraint = { link_tf, Eigen::VectorXd() };
+  link_constraints_[link_name] = constraint;
 }
 
-std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkConstraints() { return link_constraints_; }
-const std::map<std::string, Eigen::Isometry3d> MixedWaypoint::getLinkConstraints() const { return link_constraints_; }
+void MixedWaypoint::addLinkConstraint(std::string link_name,
+                                      Eigen::Isometry3d& link_tf,
+                                      const Eigen::VectorXd& cartesian_coeff)
+{
+  detail_mixed_waypoint::CartesianConstraint constraint = { link_tf, cartesian_coeff };
+  link_constraints_[link_name] = constraint;
+}
+
+std::map<std::string, detail_mixed_waypoint::CartesianConstraint> MixedWaypoint::getLinkConstraints() { return link_constraints_; }
+const std::map<std::string, detail_mixed_waypoint::CartesianConstraint> MixedWaypoint::getLinkConstraints() const { return link_constraints_; }
 
 bool MixedWaypoint::operator==(const MixedWaypoint& /*rhs*/) const
 {

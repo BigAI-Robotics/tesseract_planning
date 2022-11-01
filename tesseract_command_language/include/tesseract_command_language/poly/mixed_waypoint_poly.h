@@ -46,6 +46,12 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_planning::detail_mixed_waypoint
 {
+struct CartesianConstraint
+{
+  Eigen::Isometry3d pose;
+  Eigen::VectorXd coeff;
+};
+
 template <typename T>
 struct MixedWaypointConcept  // NOLINT
   : boost::Assignable<T>,
@@ -84,7 +90,7 @@ struct MixedWaypointConcept  // NOLINT
 
     c.addLinkConstraint(link_name, link_tf);
 
-    std::map<std::string, Eigen::Isometry3d> link_constraints = c.getLinkConstraints();
+    std::map<std::string, CartesianConstraint> link_constraints = c.getLinkConstraints();
     UNUSED(link_constraints);
 
     c.print();
@@ -110,8 +116,9 @@ struct MixedWaypointInterface : tesseract_common::TypeErasureInterface
   virtual const std::map<std::string, Eigen::Isometry3d> getLinkTargets() const = 0;
 
   virtual void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf) = 0;
-  virtual std::map<std::string, Eigen::Isometry3d> getLinkConstraints() = 0;
-  virtual const std::map<std::string, Eigen::Isometry3d> getLinkConstraints() const = 0;
+  virtual void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf, const Eigen::VectorXd& coeff) = 0;
+  virtual std::map<std::string, CartesianConstraint> getLinkConstraints() = 0;
+  virtual const std::map<std::string, CartesianConstraint> getLinkConstraints() const = 0;
   virtual void print(const std::string& prefix) const = 0;
 
 private:
@@ -156,8 +163,13 @@ struct MixedWaypointInstance : tesseract_common::TypeErasureInstance<T, MixedWay
   {
     this->get().addLinkConstraint(link_name, link_tf);
   }
-  std::map<std::string, Eigen::Isometry3d> getLinkConstraints() final { return this->get().getLinkConstraints(); }
-  const std::map<std::string, Eigen::Isometry3d> getLinkConstraints() const final
+
+  void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf, const Eigen::VectorXd& coeff) final
+  {
+    this->get().addLinkConstraint(link_name, link_tf, coeff);
+  }
+  std::map<std::string, CartesianConstraint> getLinkConstraints() final { return this->get().getLinkConstraints(); }
+  const std::map<std::string, CartesianConstraint> getLinkConstraints() const final
   {
     return this->get().getLinkConstraints();
   }
@@ -197,8 +209,16 @@ struct MixedWaypointPoly : MixedWaypointPolyBase
   const std::map<std::string, Eigen::Isometry3d> getLinkTargets() const;
 
   void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf);
-  std::map<std::string, Eigen::Isometry3d> getLinkConstraints();
-  const std::map<std::string, Eigen::Isometry3d> getLinkConstraints() const;
+  /**
+   * @brief add link constraint with coeff. first 3 element of coeff will be pos coeff, last 3 element of coeff will be rot coeff.
+   * 
+   * @param link_name 
+   * @param link_tf 
+   * @param coeff 
+   */
+  void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf, const Eigen::VectorXd& coeff);
+  std::map<std::string, detail_mixed_waypoint::CartesianConstraint> getLinkConstraints();
+  const std::map<std::string, detail_mixed_waypoint::CartesianConstraint> getLinkConstraints() const;
 
   void print(const std::string& prefix = "") const;
 

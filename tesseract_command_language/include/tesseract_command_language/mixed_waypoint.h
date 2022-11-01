@@ -36,7 +36,7 @@ public:
   std::map<std::string, double> joint_targets_;
   // target link name and pose
   std::map<std::string, Eigen::Isometry3d> link_targets_;
-  std::map<std::string, Eigen::Isometry3d> link_constraints_;
+  std::map<std::string, detail_mixed_waypoint::CartesianConstraint> link_constraints_;
 
   std::vector<std::string> getJointNames();
   const std::vector<std::string> getJointNames() const;
@@ -49,8 +49,9 @@ public:
   std::map<std::string, Eigen::Isometry3d> getLinkTargets();
   const std::map<std::string, Eigen::Isometry3d> getLinkTargets() const;
   void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf);
-  std::map<std::string, Eigen::Isometry3d> getLinkConstraints();
-  const std::map<std::string, Eigen::Isometry3d> getLinkConstraints() const;
+  void addLinkConstraint(std::string link_name, Eigen::Isometry3d& link_tf, const Eigen::VectorXd& cartesian_coeff);
+  std::map<std::string, detail_mixed_waypoint::CartesianConstraint> getLinkConstraints();
+  const std::map<std::string, detail_mixed_waypoint::CartesianConstraint> getLinkConstraints() const;
 
 private:
   friend class boost::serialization::access;

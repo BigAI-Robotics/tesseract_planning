@@ -218,8 +218,9 @@ void TrajOptDefaultPlanProfile::apply(trajopt::ProblemConstructionInfo& pci,
   {
     for (auto t : mixed_waypoint.getLinkConstraints())
     {
+      auto cart_coeff = t.second.coeff.size() ? t.second.coeff : cartesian_coeff;
       auto ti_cartesian = createCartesianWaypointTermInfo(
-          index, mi.working_frame, t.second, t.first, tcp_offset, cartesian_coeff, trajopt::TermType::TT_CNT);
+          index, mi.working_frame, t.second.pose, t.first, tcp_offset, cart_coeff, trajopt::TermType::TT_CNT);
       pci.cnt_infos.push_back(ti_cartesian);
     }
     return;
