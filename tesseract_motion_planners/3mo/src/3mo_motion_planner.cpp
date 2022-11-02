@@ -115,6 +115,7 @@ tesseract_common::StatusCode MMMOMotionPlanner::solve(const PlannerRequest& requ
     Eigen::VectorXd jp = getJointPosition(mi.getWaypoint());
     if (jp.rows() == manip->getLimits().joint_limits.rows())  // row means numbers of joint
     {
+      std::cout << jp.transpose() << std::endl << std::endl;
       assert(tesseract_common::satisfiesPositionLimits<double>(jp, manip->getLimits().joint_limits));
       tesseract_common::enforcePositionLimits<double>(jp, manip->getLimits().joint_limits);
       setJointPosition(mi.getWaypoint(), jp);

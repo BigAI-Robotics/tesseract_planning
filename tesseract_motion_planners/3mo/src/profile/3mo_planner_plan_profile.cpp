@@ -107,13 +107,16 @@ CompositeInstruction MMMOPlannerPlanProfile::stateJointMixedWaypoint(const Kinem
     joint_target = j1;
     for (auto& joint : wp.getJointTargets())
     {
-      auto joint_idx = std::find(wp.getJointNames().begin(), wp.getJointNames().end(), joint.first);
-      if (joint_idx == wp.getJointNames().end())
+      auto joint_names_ = wp.getJointNames();
+      auto joint_idx = std::find(joint_names_.begin(), joint_names_.end(), joint.first);
+      if (joint_idx == joint_names_.end())
       {
-        CONSOLE_BRIDGE_logError("joint target name: %s not found.", joint.first);
+        CONSOLE_BRIDGE_logError("joint target name: %s not found.", joint.first.c_str());
         throw std::runtime_error("joint target name not found in joints");
       }
-      joint_target[joint_idx - wp.getJointNames().begin()] = joint.second;
+      // std::cout << joint_idx - joint_names_.begin() << std::endl;
+      // std::cout << joint_target.transpose() << std::endl;
+      joint_target[joint_idx - joint_names_.begin()] = joint.second;
     }
     std::cout << "joint state target: " << joint_target.transpose() << std::endl;
   }
