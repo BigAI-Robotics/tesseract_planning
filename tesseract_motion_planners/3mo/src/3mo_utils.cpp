@@ -7,7 +7,7 @@
 namespace tesseract_planning
 {
 
-unsigned int MAX_IK_CALC_NUM = 20000;
+unsigned int MAX_IK_CALC_NUM = 10000;
 unsigned int MAX_IK_QUEUE_NUM = 100;
 
 void setupAstarGenerator(AStar::Generator& generator,
@@ -99,6 +99,7 @@ tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environmen
   int retry = 0;
   Eigen::VectorXd ik_seed = prev_joints;
   Eigen::VectorXd prev_ik_seed_ = prev_joints;
+  std::cout << "number of solutions found / retries: " << std::flush;
   while (retry < MAX_IK_CALC_NUM)
   {
     // std::cout << "ik seed: " << ik_seed.transpose() << std::endl << "ik input size: " << ik_inputs.size() <<
@@ -149,7 +150,7 @@ tesseract_kinematics::IKSolutions getIKs(const tesseract_environment::Environmen
     {
       CONSOLE_BRIDGE_logWarn("prev ik seed is same as new ik seed");
     }
-    std::cout << "\r" << "number of solutions found: " << solutions.size() << ", retries: " << retry;
+    std::cout << "\r" << solutions.size() << " / " << retry << std::flush;
     retry++;
 
     if (solutions.size() > MAX_IK_QUEUE_NUM)
