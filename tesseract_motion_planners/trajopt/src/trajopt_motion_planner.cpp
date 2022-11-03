@@ -155,8 +155,16 @@ tesseract_common::StatusCode TrajOptMotionPlanner::solve(const PlannerRequest& r
   // Enforce limits
   for (Eigen::Index i = 0; i < trajectory.rows(); i++)
   {
-    assert(tesseract_common::satisfiesPositionLimits<double>(
-        trajectory.row(i), problem->GetKin()->getLimits().joint_limits, 1e-4));
+    if (!tesseract_common::satisfiesPositionLimits<double>(
+            trajectory.row(i), problem->GetKin()->getLimits().joint_limits, 1e-4))
+    {
+      std::stringstream ss;
+      ss << "values: \n"
+         << trajectory.row(i).transpose() << std::endl
+         << "limits: \n"
+         << problem->GetKin()->getLimits().joint_limits.transpose() << std::endl;
+      CONSOLE_BRIDGE_logError("trajectory waypoint violates joint limit. \n%s", ss.str().c_str());
+    };
     tesseract_common::enforcePositionLimits<double>(trajectory.row(i), problem->GetKin()->getLimits().joint_limits);
   }
 
