@@ -7,7 +7,7 @@
 namespace tesseract_planning
 {
 
-unsigned int MAX_IK_CALC_NUM = 10000;
+unsigned int MAX_IK_CALC_NUM = 20000;
 unsigned int MAX_IK_QUEUE_NUM = 100;
 
 void setupAstarGenerator(AStar::Generator& generator,
