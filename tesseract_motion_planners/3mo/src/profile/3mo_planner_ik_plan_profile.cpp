@@ -146,7 +146,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointMixedWaypoint(const Kin
 
   // get joint joint seed
   // auto states = getJointJointSeed(j1, joint_target, request, kin_group);
-  CompositeInstruction interpolated_composite = getInterpolatedComposite(joint_names, result, base.instruction);
+  CompositeInstruction interpolated_composite = getInterpolatedCompositeLegacy(joint_names, result, base.instruction);
 
   return interpolated_composite;
 }
@@ -162,7 +162,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointJointWaypoint(const Kin
   auto joint_start = prev.extractJointPosition();
   KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
   auto states = getJointJointSeed(joint_start, joint_target, request, kin_group);
-  return getInterpolatedComposite(kin_group->getJointNames(), states, base.instruction);
+  return getInterpolatedCompositeLegacy(kin_group->getJointNames(), states, base.instruction);
 }
 
 CompositeInstruction MMMOPlannerIKPlanProfile::stateJointCartWaypoint(const KinematicGroupInstructionInfo& prev,
@@ -175,7 +175,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointCartWaypoint(const Kine
   Eigen::Isometry3d p1_world = prev.calcCartesianPose(j1);
 
   // Calculate p2 in kinematics base frame without tcp for accurate comparison with p1
-  Eigen::Isometry3d p2_world = base.extractCartesianPose();
+  Eigen::Isometry3d p2_world = base.extractCartesianPose(false);
 
   KinematicGroup::Ptr kin_group = std::move(request.env->getKinematicGroup(prev.manip->getName()));
   // Calculate steps based on cartesian information
@@ -198,7 +198,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointCartWaypoint(const Kine
     // Linearly interpolate in joint space
     // Eigen::MatrixXd states = interpolate(j1, j2_final, steps);
     auto states = getJointJointSeed(j1, j2_final, request, kin_group);
-    return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+    return getInterpolatedCompositeLegacy(base.manip->getJointNames(), states, base.instruction);
   }
 
   // Check min steps requirement
@@ -206,7 +206,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateJointCartWaypoint(const Kine
 
   // Convert to MoveInstructions
   Eigen::MatrixXd states = j1.replicate(1, steps + 1);
-  return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+  return getInterpolatedCompositeLegacy(base.manip->getJointNames(), states, base.instruction);
 }
 
 CompositeInstruction MMMOPlannerIKPlanProfile::stateCartJointWaypoint(const KinematicGroupInstructionInfo& prev,
@@ -217,7 +217,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartJointWaypoint(const Kine
   Eigen::Isometry3d p2_world = base.calcCartesianPose(j2);
 
   // Calculate p1 in kinematics base frame without tcp for accurate comparison with p1
-  Eigen::Isometry3d p1_world = prev.extractCartesianPose();
+  Eigen::Isometry3d p1_world = prev.extractCartesianPose(false);
 
   // Calculate steps based on cartesian information
   double trans_dist = (p2_world.translation() - p1_world.translation()).norm();
@@ -238,7 +238,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartJointWaypoint(const Kine
 
     // Linearly interpolate in joint space
     Eigen::MatrixXd states = interpolate(j1_final, j2, steps);
-    return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+    return getInterpolatedCompositeLegacy(base.manip->getJointNames(), states, base.instruction);
   }
 
   // Check min steps requirement
@@ -246,7 +246,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartJointWaypoint(const Kine
 
   // Convert to MoveInstructions
   Eigen::MatrixXd states = j2.replicate(1, steps + 1);
-  return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+  return getInterpolatedCompositeLegacy(base.manip->getJointNames(), states, base.instruction);
 }
 
 CompositeInstruction MMMOPlannerIKPlanProfile::stateCartCartWaypoint(const KinematicGroupInstructionInfo& prev,
@@ -258,8 +258,8 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartCartWaypoint(const Kinem
   tesseract_common::enforcePositionLimits<double>(seed, base.manip->getLimits().joint_limits);
 
   // Calculate IK for start and end
-  Eigen::Isometry3d p1_world = prev.extractCartesianPose();
-  Eigen::Isometry3d p2_world = base.extractCartesianPose();
+  Eigen::Isometry3d p1_world = prev.extractCartesianPose(false);
+  Eigen::Isometry3d p2_world = base.extractCartesianPose(false);
 
   double trans_dist = (p2_world.translation() - p1_world.translation()).norm();
   double rot_dist = Eigen::Quaterniond(p1_world.linear()).angularDistance(Eigen::Quaterniond(p2_world.linear()));
@@ -307,7 +307,7 @@ CompositeInstruction MMMOPlannerIKPlanProfile::stateCartCartWaypoint(const Kinem
   }
 
   // Convert to MoveInstructions
-  return getInterpolatedComposite(base.manip->getJointNames(), states, base.instruction);
+  return getInterpolatedCompositeLegacy(base.manip->getJointNames(), states, base.instruction);
 }
 
 Eigen::VectorXd getIKStep(tesseract_environment::Environment::Ptr env,
