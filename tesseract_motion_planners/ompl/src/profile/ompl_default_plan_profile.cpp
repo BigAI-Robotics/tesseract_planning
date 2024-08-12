@@ -337,7 +337,7 @@ void OMPLDefaultPlanProfile::setup(OMPLProblem& prob) const
 
 void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
                                              const Eigen::Isometry3d& cartesian_waypoint,
-                                             const InstructionPoly& parent_instruction,
+                                             const MoveInstructionPoly& parent_instruction,
                                              const tesseract_common::ManipulatorInfo& manip_info,
                                              const std::vector<std::string>& /*active_links*/,
                                              int /*index*/) const
@@ -345,10 +345,8 @@ void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
   const auto dof = prob.manip->numJoints();
   tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  assert(parent_instruction.isMoveInstruction());
-  const auto& base_instruction = parent_instruction.as<MoveInstructionPoly>();
-  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  assert(!(manip_info.empty() && parent_instruction.getManipulatorInfo().empty()));
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(parent_instruction.getManipulatorInfo());
 
   if (mi.manipulator.empty())
     throw std::runtime_error("OMPL, manipulator is empty!");
@@ -546,7 +544,7 @@ void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
 
 void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
                                              const Eigen::VectorXd& joint_waypoint,
-                                             const InstructionPoly& /*parent_instruction*/,
+                                             const MoveInstructionPoly& /*parent_instruction*/,
                                              const tesseract_common::ManipulatorInfo& /*manip_info*/,
                                              const std::vector<std::string>& /*active_links*/,
                                              int /*index*/) const
@@ -590,7 +588,7 @@ void OMPLDefaultPlanProfile::applyGoalStates(OMPLProblem& prob,
 
 void OMPLDefaultPlanProfile::applyStartStates(OMPLProblem& prob,
                                               const Eigen::Isometry3d& cartesian_waypoint,
-                                              const InstructionPoly& parent_instruction,
+                                              const MoveInstructionPoly& parent_instruction,
                                               const tesseract_common::ManipulatorInfo& manip_info,
                                               const std::vector<std::string>& /*active_links*/,
                                               int /*index*/) const
@@ -598,10 +596,8 @@ void OMPLDefaultPlanProfile::applyStartStates(OMPLProblem& prob,
   const auto dof = prob.manip->numJoints();
   tesseract_common::KinematicLimits limits = prob.manip->getLimits();
 
-  assert(parent_instruction.isMoveInstruction());
-  const auto& base_instruction = parent_instruction.as<MoveInstructionPoly>();
-  assert(!(manip_info.empty() && base_instruction.getManipulatorInfo().empty()));
-  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(base_instruction.getManipulatorInfo());
+  assert(!(manip_info.empty() && parent_instruction.getManipulatorInfo().empty()));
+  tesseract_common::ManipulatorInfo mi = manip_info.getCombined(parent_instruction.getManipulatorInfo());
 
   if (mi.manipulator.empty())
     throw std::runtime_error("OMPL, manipulator is empty!");
@@ -684,7 +680,7 @@ void OMPLDefaultPlanProfile::applyStartStates(OMPLProblem& prob,
 
 void OMPLDefaultPlanProfile::applyStartStates(OMPLProblem& prob,
                                               const Eigen::VectorXd& joint_waypoint,
-                                              const InstructionPoly& /*parent_instruction*/,
+                                              const MoveInstructionPoly& /*parent_instruction*/,
                                               const tesseract_common::ManipulatorInfo& /*manip_info*/,
                                               const std::vector<std::string>& /*active_links*/,
                                               int /*index*/) const
