@@ -33,7 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <memory>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_command_language/poly/instruction_poly.h>
+#include <tesseract_command_language/poly/move_instruction_poly.h>
 #include <tesseract_command_language/poly/cartesian_waypoint_poly.h>
 #include <tesseract_command_language/poly/joint_waypoint_poly.h>
 #include <tesseract_command_language/poly/mixed_waypoint_poly.h>
@@ -55,21 +55,21 @@ public:
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
                      const CartesianWaypointPoly& cartesian_waypoint,
-                     const InstructionPoly& parent_instruction,
+                     const MoveInstructionPoly& parent_instruction,
                      const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index) const = 0;
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
                      const JointWaypointPoly& joint_waypoint,
-                     const InstructionPoly& parent_instruction,
+                     const MoveInstructionPoly& parent_instruction,
                      const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index) const = 0;
 
   virtual void apply(trajopt::ProblemConstructionInfo& pci,
                      const MixedWaypointPoly& mixed_waypoint,
-                     const InstructionPoly& parent_instruction,
+                     const MoveInstructionPoly& parent_instruction,
                      const tesseract_common::ManipulatorInfo& manip_info,
                      const std::vector<std::string>& active_links,
                      int index,
