@@ -60,7 +60,7 @@ public:
    * @brief Add a node to the pipeline
    * @return The node ID which should be used with adding edges
    */
-  int addNode(TaskComposerNode::UPtr task_node);
+  boost::uuids::uuid addNode(TaskComposerNode::UPtr task_node);
 
   /**
    * @brief Adds directed edges from a source node to destination nodes in the taskflow graph
@@ -73,10 +73,12 @@ public:
    * @param from The ID of the source node of the edge
    * @param dest A list of IDs of the destination nodes of the edges.
    */
-  void addEdges(int source, std::vector<int> destinations);
+  void addEdges(boost::uuids::uuid source, std::vector<boost::uuids::uuid> destinations);
 
   /** @brief Get the nodes associated with the pipeline */
-  std::vector<TaskComposerNode::ConstPtr> getNodes();
+  std::map<boost::uuids::uuid, TaskComposerNode::ConstPtr> getNodes() const;
+
+  void dump(std::ostream& os) const override;
 
   int run(TaskComposerInput& input) const override;
 
@@ -90,7 +92,9 @@ protected:
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
-  std::vector<TaskComposerNode::Ptr> nodes_;
+  void dumpHelper(std::ostream& os, const TaskComposerGraph& parent) const;
+
+  std::map<boost::uuids::uuid, TaskComposerNode::Ptr> nodes_;
 };
 
 }  // namespace tesseract_planning

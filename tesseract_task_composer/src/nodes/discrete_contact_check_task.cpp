@@ -40,8 +40,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 namespace tesseract_planning
 {
-DiscreteContactCheckTask::DiscreteContactCheckTask(std::string input_key, std::string name)
-  : TaskComposerNode(std::move(name)), input_key_(std::move(input_key))
+DiscreteContactCheckTask::DiscreteContactCheckTask(std::string input_key, bool is_conditional, std::string name)
+  : TaskComposerTask(is_conditional, std::move(name)), input_key_(std::move(input_key))
 {
 }
 
@@ -79,7 +79,8 @@ int DiscreteContactCheckTask::run(TaskComposerInput& input) const
   cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   // Get state solver
-  tesseract_kinematics::JointGroup::UPtr manip = input.env->getJointGroup(input.manip_info.manipulator);
+  tesseract_common::ManipulatorInfo manip_info = ci.getManipulatorInfo().getCombined(input.manip_info);
+  tesseract_kinematics::JointGroup::UPtr manip = input.env->getJointGroup(manip_info.manipulator);
   tesseract_scene_graph::StateSolver::UPtr state_solver = input.env->getStateSolver();
   tesseract_collision::DiscreteContactManager::Ptr manager = input.env->getDiscreteContactManager();
 
@@ -115,7 +116,7 @@ bool DiscreteContactCheckTask::operator==(const DiscreteContactCheckTask& rhs) c
 {
   bool equal = true;
   equal &= (input_key_ == rhs.input_key_);
-  equal &= TaskComposerNode::operator==(rhs);
+  equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
 bool DiscreteContactCheckTask::operator!=(const DiscreteContactCheckTask& rhs) const { return !operator==(rhs); }
@@ -124,7 +125,7 @@ template <class Archive>
 void DiscreteContactCheckTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
   ar& BOOST_SERIALIZATION_NVP(input_key_);
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNode);
+  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
 DiscreteContactCheckTaskInfo::DiscreteContactCheckTaskInfo(boost::uuids::uuid uuid, std::string name)

@@ -31,6 +31,11 @@
 #include <tesseract_task_composer/task_composer_data_storage.h>
 #include <tesseract_task_composer/task_composer_node_info.h>
 
+namespace tf
+{
+class Executor;
+}
+
 namespace tesseract_planning
 {
 /**
@@ -92,15 +97,14 @@ struct TaskComposerInput
   /** @brief The location data is stored and retrieved during execution */
   const TaskComposerDataStorage::Ptr data_storage;
 
+  /** @brief The task executor */
+  const std::shared_ptr<tf::Executor> executor;
+
   /** @brief The location where task info is stored during execution */
   TaskComposerNodeInfoContainer task_infos;
 
-  //  /**
-  //   * @brief This indicates if a seed was provided
-  //   * @details In the case of the raster process planner a skeleton seed is provided which make it
-  //   * computationally intensive to determine if a seed was provide so this was added.
-  //   */
-  //  const bool has_seed{ false };
+  /** @brief This indicates if a seed was provided */
+  bool has_seed{ false };
 
   /** @brief If true the task will save the inputs and outputs to the TaskInfo*/
   bool save_io{ false };

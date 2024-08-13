@@ -16,6 +16,7 @@ find_package(tesseract_motion_planners REQUIRED)
 find_package(tesseract_time_parameterization REQUIRED)
 find_package(trajopt REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization)
+find_package(Taskflow REQUIRED)
 
 if(NOT TARGET console_bridge::console_bridge)
   add_library(console_bridge::console_bridge INTERFACE IMPORTED)
@@ -48,21 +49,30 @@ add_library(
   src/task_composer_node.cpp
   src/task_composer_node_info.cpp
   src/task_composer_graph.cpp
+  src/task_composer_task.cpp
+  src/nodes/cartesian_motion_pipeline_task.cpp
   src/nodes/check_input_task.cpp
   src/nodes/continuous_contact_check_task.cpp
+  src/nodes/descartes_motion_pipeline_task.cpp
   src/nodes/discrete_contact_check_task.cpp
   src/nodes/done_task.cpp
   src/nodes/error_task.cpp
   src/nodes/fix_state_bounds_task.cpp
   src/nodes/fix_state_collision_task.cpp
+  src/nodes/freespace_motion_pipeline_task.cpp
   src/nodes/has_seed_task.cpp
   src/nodes/iterative_spline_parameterization_task.cpp
   src/nodes/motion_planner_task.cpp
+  src/nodes/ompl_motion_pipeline_task.cpp
   src/nodes/profile_switch_task.cpp
+  src/nodes/raster_motion_task.cpp
   src/nodes/ruckig_trajectory_smoothing_task.cpp
   src/nodes/seed_min_length_task.cpp
   src/nodes/time_optimal_parameterization_task.cpp
+  src/nodes/trajopt_motion_pipeline_task.cpp
   src/nodes/transition_mux_task.cpp
+  src/nodes/update_end_state_task.cpp
+  src/nodes/update_start_state_task.cpp
   src/nodes/upsample_trajectory_task.cpp)
 target_link_libraries(
   ${PROJECT_NAME}
@@ -70,10 +80,15 @@ target_link_libraries(
          tesseract::tesseract_common
          tesseract::tesseract_command_language
          tesseract::tesseract_motion_planners_core
+         tesseract::tesseract_motion_planners_simple
+         tesseract::tesseract_motion_planners_trajopt
+         tesseract::tesseract_motion_planners_ompl
+         tesseract::tesseract_motion_planners_descartes
          tesseract::tesseract_time_parameterization
          trajopt::trajopt
          Boost::boost
-         Boost::serialization)
+         Boost::serialization
+         Taskflow::Taskflow)
 target_compile_options(${PROJECT_NAME} PRIVATE ${TESSERACT_COMPILE_OPTIONS_PRIVATE})
 target_compile_options(${PROJECT_NAME} PUBLIC ${TESSERACT_COMPILE_OPTIONS_PUBLIC})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${TESSERACT_COMPILE_DEFINITIONS})
@@ -98,7 +113,8 @@ configure_package(
           tesseract_command_language
           tesseract_motion_planners
           tesseract_time_parameterization
-          trajopt)
+          trajopt
+          Taskflow)
 
 # Mark header files for installation
 install(

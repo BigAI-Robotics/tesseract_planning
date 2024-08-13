@@ -43,7 +43,6 @@ class TaskComposerGraph;
 enum class TaskComposerNodeType
 {
   TASK,
-  CONDITIONAL_TASK,
   GRAPH
 };
 
@@ -72,8 +71,14 @@ public:
   /** @brief The task uuid */
   const boost::uuids::uuid& getUUID() const;
 
+  /** @brief The task uuid */
+  const std::string& getUUIDString() const;
+
   /** @brief IDs of nodes (i.e. node) that should run after this node */
-  const std::vector<int>& getEdges() const;
+  const std::vector<boost::uuids::uuid>& getEdges() const;
+
+  /** @brief dump the task to dot */
+  virtual void dump(std::ostream& os) const;
 
   virtual int run(TaskComposerInput& input) const = 0;
 
@@ -97,8 +102,14 @@ protected:
   /** @brief The task uuid */
   boost::uuids::uuid uuid_;
 
+  /** @brief The uuid as string */
+  std::string uuid_str_;
+
   /** @brief IDs of nodes (i.e. tasks) that should run after this node */
-  std::vector<int> edges_;
+  std::vector<boost::uuids::uuid> edges_;
+
+  /** @brief This will create a UUID string with no hyphens used when creating dot graph */
+  static std::string toString(const boost::uuids::uuid& u, const std::string& prefix = "");
 };
 
 }  // namespace tesseract_planning

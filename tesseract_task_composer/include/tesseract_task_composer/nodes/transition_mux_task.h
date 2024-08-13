@@ -30,12 +30,12 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <boost/serialization/access.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_task_composer/task_composer_node.h>
+#include <tesseract_task_composer/task_composer_task.h>
 #include <tesseract_task_composer/task_composer_node_info.h>
 
 namespace tesseract_planning
 {
-class TransitionMuxTask : public TaskComposerNode
+class TransitionMuxTask : public TaskComposerTask
 {
 public:
   using Ptr = std::shared_ptr<TransitionMuxTask>;
@@ -43,12 +43,21 @@ public:
   using UPtr = std::unique_ptr<TransitionMuxTask>;
   using ConstUPtr = std::unique_ptr<const TransitionMuxTask>;
 
-  TransitionMuxTask() = default;  // Required for serialization
+  TransitionMuxTask() = default;
+  /** @brief The input_key is the uuid string */
+  TransitionMuxTask(std::string input_prev_key,
+                    std::string input_next_key,
+                    std::string output_key,
+                    bool is_conditional = false,
+                    std::string name = "TransitionMuxTask");
+
   TransitionMuxTask(std::string input_key,
                     std::string input_prev_key,
                     std::string input_next_key,
-                    std::string output_key);
-  ~TransitionMuxTask() = default;
+                    std::string output_key,
+                    bool is_conditional = false,
+                    std::string name = "TransitionMuxTask");
+  ~TransitionMuxTask() override = default;
 
   int run(TaskComposerInput& input) const override;
 

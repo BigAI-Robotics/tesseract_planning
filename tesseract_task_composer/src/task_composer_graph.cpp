@@ -27,8 +27,10 @@
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <console_bridge/console.h>
-#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/serialization/shared_ptr.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_task_composer/task_composer_graph.h>
@@ -39,21 +41,50 @@ TaskComposerGraph::TaskComposerGraph(std::string name) : TaskComposerNode(std::m
 {
 }
 
-int TaskComposerGraph::addNode(TaskComposerNode::UPtr task_node)
+boost::uuids::uuid TaskComposerGraph::addNode(TaskComposerNode::UPtr task_node)
 {
-  nodes_.emplace_back(std::move(task_node));
-  return static_cast<int>(nodes_.size() - 1);
+  boost::uuids::uuid uuid = task_node->getUUID();
+  nodes_[uuid] = std::move(task_node);
+  return uuid;
 }
 
-void TaskComposerGraph::addEdges(int source, std::vector<int> destinations)
+void TaskComposerGraph::addEdges(boost::uuids::uuid source, std::vector<boost::uuids::uuid> destinations)
 {
-  TaskComposerNode::Ptr& node = nodes_.at(static_cast<std::size_t>(source));
+  TaskComposerNode::Ptr& node = nodes_.at(source);
   node->edges_.insert(node->edges_.end(), destinations.begin(), destinations.end());
 }
 
-std::vector<TaskComposerNode::ConstPtr> TaskComposerGraph::getNodes()
+std::map<boost::uuids::uuid, TaskComposerNode::ConstPtr> TaskComposerGraph::getNodes() const
 {
-  return std::vector<TaskComposerNode::ConstPtr>{ nodes_.begin(), nodes_.end() };
+  return std::map<boost::uuids::uuid, TaskComposerNode::ConstPtr>{ nodes_.begin(), nodes_.end() };
+}
+
+void TaskComposerGraph::dump(std::ostream& os) const
+{
+  os << "digraph TaskComposer {\n";
+  dumpHelper(os, *this);
+  os << "}\n";
+}
+
+void TaskComposerGraph::dumpHelper(std::ostream& os, const TaskComposerGraph& /*parent*/) const
+{
+  const std::string tmp = toString(uuid_);
+  os << "subgraph cluster_" << tmp << " {\n color=black;\n label = \"" << name_ << "\\n(" << uuid_str_ << ")\";";
+  for (const auto& pair : nodes_)
+  {
+    const auto& node = pair.second;
+    if (node->getType() == TaskComposerNodeType::TASK)
+      node->dump(os);
+    else if (node->getType() == TaskComposerNodeType::GRAPH)
+      static_cast<const TaskComposerGraph&>(*node).dumpHelper(os, *this);
+  }
+
+  for (const auto& edge : edges_)
+  {
+    os << "node_" << tmp << " -> " << toString(edge, "node_") << ";\n";
+  }
+
+  os << "}\n";
 }
 
 int TaskComposerGraph::run(TaskComposerInput& /*input*/) const
@@ -67,8 +98,13 @@ bool TaskComposerGraph::operator==(const TaskComposerGraph& rhs) const
   equal &= (nodes_.size() == rhs.nodes_.size());
   if (equal)
   {
-    for (std::size_t i = 0; i < nodes_.size(); ++i)
-      equal &= (*nodes_[i] == *rhs.nodes_[i]);
+    for (const auto& pair : nodes_)
+    {
+      auto it = rhs.nodes_.find(pair.first);
+      equal &= (it == rhs.nodes_.end());
+      if (equal == true)
+        equal &= (*(pair.second) == *(it->second));
+    }
   }
   equal &= TaskComposerNode::operator==(rhs);
   return equal;
