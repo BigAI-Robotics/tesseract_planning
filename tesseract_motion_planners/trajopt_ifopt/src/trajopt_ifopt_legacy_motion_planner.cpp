@@ -260,7 +260,7 @@ std::shared_ptr<TrajOptIfoptProblem> TrajOptIfoptLegacyMotionPlanner::createProb
 
   // Apply Solver parameters
   std::string profile = request.instructions.getProfile();
-  ProfileDictionary::ConstPtr profile_overrides = request.instructions.profile_overrides;
+  ProfileDictionary::ConstPtr profile_overrides = request.instructions.getProfileOverrides();
   profile = getProfileString(name_, profile, PlannerProfileRemapping());
   //  TrajOptSolverProfile::ConstPtr solver_profile =
   //      getProfile<TrajOptSolverProfile>(profile, solver_profiles, std::make_shared<TrajOptDefaultSolverProfile>());
@@ -631,7 +631,7 @@ std::shared_ptr<TrajOptIfoptProblem> TrajOptIfoptLegacyMotionPlanner::createProb
   TrajOptIfoptCompositeProfile::ConstPtr cur_composite_profile = getProfile<TrajOptIfoptCompositeProfile>(
       name_, profile, *request.profiles, std::make_shared<TrajOptIfoptDefaultCompositeProfile>());
   cur_composite_profile =
-      applyProfileOverrides(name_, profile, cur_composite_profile, request.instructions.profile_overrides);
+      applyProfileOverrides(name_, profile, cur_composite_profile, request.instructions.getProfileOverrides());
   if (!cur_composite_profile)
     throw std::runtime_error("DefaultTrajoptIfoptProblemGenerator: Invalid profile");
 
