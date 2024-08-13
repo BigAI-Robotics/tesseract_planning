@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include <tesseract_common/utils.h>
-#include <tesseract_task_composer/task_composer_pipeline.h>
+#include <tesseract_task_composer/task_composer_graph.h>
 #include <taskflow/taskflow.hpp>
 
 using namespace tesseract_planning;
@@ -58,15 +58,9 @@ protected:
   std::string output_key_;
 };
 
-std::unique_ptr<tf::Taskflow> convertToTaskflow(TaskComposerPipeline& task_composer, TaskComposerInput::Ptr task_input)
+std::unique_ptr<tf::Taskflow> convertToTaskflow(TaskComposerGraph& task_composer, TaskComposerInput::Ptr task_input)
 {
   auto taskflow = std::make_unique<tf::Taskflow>(task_composer.getName());
-
-  // Add "Error" task
-  //  tf::Task error_task = taskflow->emplace([=]() { std::cout << "Failed!" << std::endl; }).name("Error Task");
-
-  // Add "Done" task
-  tf::Task done_task = taskflow->emplace([=]() { std::cout << "Successful!" << std::endl; }).name("Done Task");
 
   // Generate process tasks for each node
   std::vector<tf::Task> tasks;
@@ -75,7 +69,7 @@ std::unique_ptr<tf::Taskflow> convertToTaskflow(TaskComposerPipeline& task_compo
   for (const auto& node : nodes)
   {
     auto edges = node->getEdges();
-    if (edges.size() > 1)
+    if (edges.size() > 1 && node->getType() == TaskComposerNodeType::CONDITIONAL_TASK)
       tasks.push_back(taskflow->emplace([node, task_input] { return node->run(*task_input); }).name(node->getName()));
     else
       tasks.push_back(taskflow->emplace([node, task_input] { node->run(*task_input); }).name(node->getName()));
@@ -90,22 +84,8 @@ std::unique_ptr<tf::Taskflow> convertToTaskflow(TaskComposerPipeline& task_compo
     {
       if (idx >= 0)
         tasks.at(i).precede(tasks.at(static_cast<std::size_t>(idx)));
-      else if (idx == TaskComposerPipeline::DONE_NODE)
-        tasks.at(i).precede(done_task);
-      //      else if (idx == TaskComposerPipeline::ERROR_NODE)
-      //        tasks.at(i).precede(error_task);
       else
         throw std::runtime_error("Invalid TaskComposerPipeline: Node specified with invalid edge");
-    }
-
-    // If no edges exist for the current node, make sure it precedes the done task (and error task if conditional)
-    if (edges.empty())
-    {
-      // Make sure the 0th connection of a conditional task goes to the error task
-      //      if (node.edges.size() > 1)
-      //        tasks.at(i).precede(error_task);
-
-      tasks.at(i).precede(done_task);
     }
   }
 
@@ -131,7 +111,7 @@ int main()
   auto task2 = std::make_unique<MultiplyTaskComposerNode>("a", "task1_output", "task2_output");
   auto task3 = std::make_unique<AddTaskComposerNode>("task2_output", "d", "task3_output");
 
-  TaskComposerPipeline task_composer;
+  TaskComposerGraph task_composer;
   int task1_id = task_composer.addNode(std::move(task1));
   int task2_id = task_composer.addNode(std::move(task2));
   int task3_id = task_composer.addNode(std::move(task3));

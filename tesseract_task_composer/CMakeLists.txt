@@ -47,10 +47,12 @@ add_library(
   src/task_composer_input.cpp
   src/task_composer_node.cpp
   src/task_composer_node_info.cpp
-  src/task_composer_pipeline.cpp
+  src/task_composer_graph.cpp
   src/nodes/check_input_task.cpp
   src/nodes/continuous_contact_check_task.cpp
   src/nodes/discrete_contact_check_task.cpp
+  src/nodes/done_task.cpp
+  src/nodes/error_task.cpp
   src/nodes/fix_state_bounds_task.cpp
   src/nodes/fix_state_collision_task.cpp
   src/nodes/has_seed_task.cpp
@@ -86,7 +88,17 @@ target_code_coverage(
 target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
                                                   "$<INSTALL_INTERFACE:include>")
 
-configure_package(NAMESPACE tesseract TARGETS ${PROJECT_NAME})
+configure_package(
+  NAMESPACE tesseract
+  TARGETS ${PROJECT_NAME}
+          DEPENDENCIES
+          "Boost COMPONENTS serialization"
+          console_bridge
+          tesseract_common
+          tesseract_command_language
+          tesseract_motion_planners
+          tesseract_time_parameterization
+          trajopt)
 
 # Mark header files for installation
 install(
