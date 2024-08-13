@@ -19,13 +19,7 @@ constexpr auto FAILED_TO_FIND_VALID_SOLUTION{ "Failed to find valid solution" };
 
 namespace tesseract_planning
 {
-MMMOMotionPlanner::MMMOMotionPlanner(std::string name) : name_(std::move(name))
-{
-  if (name_.empty())
-    throw std::runtime_error("MMMOMotionPlanner name is empty!");
-}
-
-const std::string& MMMOMotionPlanner::getName() const { return name_; }
+MMMOMotionPlanner::MMMOMotionPlanner(std::string name) : MotionPlanner(std::move(name)) {}
 
 bool MMMOMotionPlanner::terminate()
 {
@@ -40,7 +34,7 @@ MotionPlanner::Ptr MMMOMotionPlanner::clone() const { return std::make_shared<MM
 PlannerResponse MMMOMotionPlanner::solve(const PlannerRequest& request) const
 {
   PlannerResponse response;
-  if (!checkUserInput(request))
+  if (!checkRequest(request))
   {
     response.successful = false;
     response.message = ERROR_INVALID_INPUT;
