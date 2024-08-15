@@ -36,7 +36,7 @@ namespace tesseract_planning
 {
 StartTask::StartTask(std::string name) : TaskComposerTask(false, std::move(name)) {}
 
-int StartTask::run(TaskComposerInput& input) const
+int StartTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   if (input.isAborted())
     return 0;
@@ -50,6 +50,8 @@ int StartTask::run(TaskComposerInput& input) const
   input.addTaskInfo(std::move(info));
   return 1;
 }
+
+TaskComposerNode::UPtr StartTask::clone() const { return std::make_unique<StartTask>(name_); }
 
 bool StartTask::operator==(const StartTask& rhs) const
 {

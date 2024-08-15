@@ -55,7 +55,9 @@ public:
   ContinuousContactCheckTask(ContinuousContactCheckTask&&) = delete;
   ContinuousContactCheckTask& operator=(ContinuousContactCheckTask&&) = delete;
 
-  int run(TaskComposerInput& input) const override final;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const ContinuousContactCheckTask& rhs) const;
   bool operator!=(const ContinuousContactCheckTask& rhs) const;
@@ -65,8 +67,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::string input_key_;
 };
 
 class ContinuousContactCheckTaskInfo : public TaskComposerNodeInfo

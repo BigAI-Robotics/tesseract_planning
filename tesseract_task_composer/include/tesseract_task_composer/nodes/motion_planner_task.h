@@ -53,7 +53,9 @@ public:
                     bool is_conditional = true);
   ~MotionPlannerTask() = default;
 
-  int run(TaskComposerInput& input) const override;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const MotionPlannerTask& rhs) const;
   bool operator!=(const MotionPlannerTask& rhs) const;
@@ -65,8 +67,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   MotionPlanner::Ptr planner_;
-  std::string input_key_;
-  std::string output_key_;
   bool format_result_as_input_;
 };
 

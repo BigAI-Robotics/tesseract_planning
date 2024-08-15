@@ -2,22 +2,22 @@
 #include <iostream>
 #include <tesseract_common/utils.h>
 #include <tesseract_task_composer/task_composer_graph.h>
-#include <tesseract_task_composer/taskflow_utils.h>
+#include <tesseract_task_composer/taskflow/taskflow_task_composer_executor.h>
 
 using namespace tesseract_planning;
 
-class AddTaskComposerNode : public TaskComposerNode
+class AddTaskComposerNode : public TaskComposerTask
 {
 public:
   AddTaskComposerNode(std::string left_key, std::string right_key, std::string output_key)
-    : TaskComposerNode("AddTwoNumbers")
+    : TaskComposerTask("AddTwoNumbers")
     , left_key_(std::move(left_key))
     , right_key_(std::move(right_key))
     , output_key_(std::move(output_key))
   {
   }
 
-  int run(TaskComposerInput& input) const override final
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const override final
   {
     std::cout << name_ << std::endl;
     double result =
@@ -26,30 +26,40 @@ public:
     return 0;
   }
 
+  TaskComposerNode::UPtr clone() const override final
+  {
+    return std::make_unique<AddTaskComposerNode>(left_key_, right_key_, output_key_);
+  }
+
 protected:
   std::string left_key_;
   std::string right_key_;
   std::string output_key_;
 };
 
-class MultiplyTaskComposerNode : public TaskComposerNode
+class MultiplyTaskComposerNode : public TaskComposerTask
 {
 public:
   MultiplyTaskComposerNode(std::string left_key, std::string right_key, std::string output_key)
-    : TaskComposerNode("MultiplyTwoNumbers")
+    : TaskComposerTask("MultiplyTwoNumbers")
     , left_key_(std::move(left_key))
     , right_key_(std::move(right_key))
     , output_key_(std::move(output_key))
   {
   }
 
-  int run(TaskComposerInput& input) const override final
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const override final
   {
     std::cout << name_ << std::endl;
     double result =
         input.data_storage->getData(left_key_).as<double>() * input.data_storage->getData(right_key_).as<double>();
     input.data_storage->setData(output_key_, result);
     return 0;
+  }
+
+  TaskComposerNode::UPtr clone() const override final
+  {
+    return std::make_unique<MultiplyTaskComposerNode>(left_key_, right_key_, output_key_);
   }
 
 protected:
@@ -84,16 +94,9 @@ int main()
   task_composer.addEdges(task1_id, { task2_id });
   task_composer.addEdges(task2_id, { task3_id });
 
-  TaskComposerTaskflowContainer taskflow = convertToTaskflow(task_composer, *task_input);
-
-  std::ofstream out_data;
-  out_data.open(tesseract_common::getTempPath() + "task_composer_example.dot");
-  taskflow.top->dump(out_data);  // dump the graph including dynamic tasks
-  out_data.close();
-
-  tf::Executor executor;
-  executor.run(*taskflow.top);
-  executor.wait_for_all();
+  auto task_executor = std::make_shared<TaskflowTaskComposerExecutor>();
+  TaskComposerFuture::UPtr future = task_executor->run(task_composer, *task_input);
+  future->wait();
 
   std::cout << "Output: " << task_data->getData("task3_output").as<double>() << std::endl;
 }

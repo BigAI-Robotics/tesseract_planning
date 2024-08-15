@@ -7,10 +7,10 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include "raster_example_program.h"
 
-#include <tesseract_task_composer/taskflow_utils.h>
 #include <tesseract_task_composer/task_composer_graph.h>
 #include <tesseract_task_composer/task_composer_data_storage.h>
 #include <tesseract_task_composer/nodes/raster_motion_task.h>
+#include <tesseract_task_composer/taskflow/taskflow_task_composer_executor.h>
 
 #include <tesseract_common/types.h>
 #include <tesseract_environment/environment.h>
@@ -55,23 +55,16 @@ int main()
 
   auto task_input = std::make_shared<TaskComposerInput>(env, profiles, task_data);
 
-  TaskComposerTask::UPtr task_composer = std::make_unique<RasterMotionTask>("input_program", "output_program");
+  TaskComposerTask::UPtr task = std::make_unique<RasterMotionTask>("input_program", "output_program");
 
   std::ofstream tc_out_data;
   tc_out_data.open(tesseract_common::getTempPath() + "task_composer_raster_example.dot");
-  task_composer->dump(tc_out_data);  // dump the graph including dynamic tasks
+  task->dump(tc_out_data);  // dump the graph including dynamic tasks
   tc_out_data.close();
 
-  TaskComposerTaskflowContainer taskflow = convertToTaskflow(*task_composer, *task_input);
-
-  std::ofstream out_data;
-  out_data.open(tesseract_common::getTempPath() + "task_composer_raster_example_tf.dot");
-  taskflow.top->dump(out_data);  // dump the graph including dynamic tasks
-  out_data.close();
-
-  tf::Executor executor;
-  executor.run(*taskflow.top);
-  executor.wait_for_all();
+  auto task_executor = std::make_shared<TaskflowTaskComposerExecutor>();
+  TaskComposerFuture::UPtr future = task_executor->run(*task, *task_input);
+  future->wait();
 
   // Plot Process Trajectory
   auto output_program = task_data->getData("output_program").as<CompositeInstruction>();

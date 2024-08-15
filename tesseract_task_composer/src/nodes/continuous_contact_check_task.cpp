@@ -42,11 +42,12 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 namespace tesseract_planning
 {
 ContinuousContactCheckTask::ContinuousContactCheckTask(std::string input_key, bool is_conditional, std::string name)
-  : TaskComposerTask(is_conditional, std::move(name)), input_key_(std::move(input_key))
+  : TaskComposerTask(is_conditional, std::move(name))
 {
+  input_keys_.push_back(std::move(input_key));
 }
 
-int ContinuousContactCheckTask::run(TaskComposerInput& input) const
+int ContinuousContactCheckTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   if (input.isAborted())
     return 0;
@@ -60,7 +61,7 @@ int ContinuousContactCheckTask::run(TaskComposerInput& input) const
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_key_);
+  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     info->message = "Input seed to ContinuousContactCheckTask must be a composite instruction";
@@ -113,10 +114,14 @@ int ContinuousContactCheckTask::run(TaskComposerInput& input) const
   return 1;
 }
 
+TaskComposerNode::UPtr ContinuousContactCheckTask::clone() const
+{
+  return std::make_unique<ContinuousContactCheckTask>(input_keys_[0], is_conditional_, name_);
+}
+
 bool ContinuousContactCheckTask::operator==(const ContinuousContactCheckTask& rhs) const
 {
   bool equal = true;
-  equal &= (input_key_ == rhs.input_key_);
   equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
@@ -125,7 +130,6 @@ bool ContinuousContactCheckTask::operator!=(const ContinuousContactCheckTask& rh
 template <class Archive>
 void ContinuousContactCheckTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
-  ar& BOOST_SERIALIZATION_NVP(input_key_);
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 

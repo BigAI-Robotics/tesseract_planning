@@ -25,12 +25,10 @@
  */
 
 #include <tesseract_task_composer/task_composer_input.h>
-#include <taskflow/taskflow.hpp>
 
 namespace tesseract_planning
 {
-TaskComposerInput::TaskComposerInput(TaskComposerDataStorage::Ptr data_storage)
-  : data_storage(std::move(data_storage)), executor(std::make_shared<tf::Executor>())
+TaskComposerInput::TaskComposerInput(TaskComposerDataStorage::Ptr data_storage) : data_storage(std::move(data_storage))
 {
 }
 
@@ -42,7 +40,7 @@ TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPt
   , manip_info(std::move(manip_info))
   , profiles(std::move(profiles))
   , data_storage(std::move(data_storage))
-  , executor(std::make_shared<tf::Executor>())
+  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
 {
 }
 
@@ -58,7 +56,7 @@ TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPt
   , composite_profile_remapping(std::move(composite_profile_remapping))
   , profiles(std::move(profiles))
   , data_storage(std::move(data_storage))
-  , executor(std::make_shared<tf::Executor>())
+  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
 {
 }
 
@@ -72,23 +70,26 @@ TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPt
   , composite_profile_remapping(std::move(composite_profile_remapping))
   , profiles(std::move(profiles))
   , data_storage(std::move(data_storage))
-  , executor(std::make_shared<tf::Executor>())
+  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
 {
 }
 
 TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
                                      ProfileDictionary::ConstPtr profiles,
                                      TaskComposerDataStorage::Ptr data_storage)
-  : env(std::move(env))
-  , profiles(std::move(profiles))
-  , data_storage(std::move(data_storage))
-  , executor(std::make_shared<tf::Executor>())
+  : env(std::move(env)), profiles(std::move(profiles)), data_storage(std::move(data_storage))
 {
 }
 
 bool TaskComposerInput::isAborted() const { return aborted_; }
 
 void TaskComposerInput::abort() { aborted_ = true; }
+
+void TaskComposerInput::reset()
+{
+  aborted_ = false;
+  data_storage = std::make_shared<TaskComposerDataStorage>(*original_data_storage_);
+}
 
 void TaskComposerInput::addTaskInfo(TaskComposerNodeInfo::UPtr task_info) { task_infos.addInfo(std::move(task_info)); }
 

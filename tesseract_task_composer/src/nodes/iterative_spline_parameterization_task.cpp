@@ -46,14 +46,13 @@ IterativeSplineParameterizationTask::IterativeSplineParameterizationTask(std::st
                                                                          bool is_conditional,
                                                                          bool add_points,
                                                                          std::string name)
-  : TaskComposerTask(is_conditional, std::move(name))
-  , input_key_(std::move(input_key))
-  , output_key_(std::move(output_key))
-  , solver_(add_points)
+  : TaskComposerTask(is_conditional, std::move(name)), add_points_(add_points), solver_(add_points)
 {
+  input_keys_.push_back(std::move(input_key));
+  output_keys_.push_back(std::move(output_key));
 }
 
-int IterativeSplineParameterizationTask::run(TaskComposerInput& input) const
+int IterativeSplineParameterizationTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   if (input.isAborted())
     return 0;
@@ -67,7 +66,7 @@ int IterativeSplineParameterizationTask::run(TaskComposerInput& input) const
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_key_);
+  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     CONSOLE_BRIDGE_logError("Input results to iterative spline parameterization must be a composite instruction");
@@ -143,6 +142,7 @@ int IterativeSplineParameterizationTask::run(TaskComposerInput& input) const
   }
 
   CONSOLE_BRIDGE_logDebug("Iterative spline time parameterization succeeded");
+  input.data_storage->setData(output_keys_[0], input_data_poly);
   info->return_value = 1;
   //  saveOutputs(*info, input);
   info->elapsed_time = timer.elapsedSeconds();
@@ -150,11 +150,16 @@ int IterativeSplineParameterizationTask::run(TaskComposerInput& input) const
   return 1;
 }
 
+TaskComposerNode::UPtr IterativeSplineParameterizationTask::clone() const
+{
+  return std::make_unique<IterativeSplineParameterizationTask>(
+      input_keys_[0], output_keys_[0], add_points_, is_conditional_, name_);
+}
+
 bool IterativeSplineParameterizationTask::operator==(const IterativeSplineParameterizationTask& rhs) const
 {
   bool equal = true;
-  equal &= (input_key_ == rhs.input_key_);
-  equal &= (output_key_ == rhs.output_key_);
+  equal &= (add_points_ == rhs.add_points_);
   equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
@@ -166,8 +171,7 @@ bool IterativeSplineParameterizationTask::operator!=(const IterativeSplineParame
 template <class Archive>
 void IterativeSplineParameterizationTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
-  ar& BOOST_SERIALIZATION_NVP(input_key_);
-  ar& BOOST_SERIALIZATION_NVP(output_key_);
+  ar& BOOST_SERIALIZATION_NVP(add_points_);
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 

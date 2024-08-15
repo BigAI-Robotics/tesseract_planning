@@ -80,10 +80,17 @@ public:
   /** @brief IDs of nodes (i.e. node) that should run before this node */
   const std::vector<boost::uuids::uuid>& getInboundEdges() const;
 
+  /** @brief The nodes input keys */
+  const std::vector<std::string>& getInputKeys() const;
+
+  /** @brief The nodes output keys */
+  const std::vector<std::string>& getOutputKeys() const;
+
   /** @brief dump the task to dot */
   virtual void dump(std::ostream& os) const;
 
-  virtual int run(TaskComposerInput& input) const = 0;
+  /** @brief Create a deep copy of the node */
+  virtual TaskComposerNode::UPtr clone() const = 0;
 
   bool operator==(const TaskComposerNode& rhs) const;
   bool operator!=(const TaskComposerNode& rhs) const;
@@ -113,6 +120,12 @@ protected:
 
   /** @brief IDs of nodes (i.e. tasks) that should run before this node */
   std::vector<boost::uuids::uuid> inbound_edges_;
+
+  /** @brief The nodes input keys */
+  std::vector<std::string> input_keys_;
+
+  /** @brief The nodes output keys */
+  std::vector<std::string> output_keys_;
 
   /** @brief This will create a UUID string with no hyphens used when creating dot graph */
   static std::string toString(const boost::uuids::uuid& u, const std::string& prefix = "");

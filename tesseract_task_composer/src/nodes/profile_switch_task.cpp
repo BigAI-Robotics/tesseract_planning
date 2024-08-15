@@ -38,11 +38,12 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 namespace tesseract_planning
 {
 ProfileSwitchTask::ProfileSwitchTask(std::string input_key, bool is_conditional, std::string name)
-  : TaskComposerTask(is_conditional, std::move(name)), input_key_(std::move(input_key))
+  : TaskComposerTask(is_conditional, std::move(name))
 {
+  input_keys_.push_back(std::move(input_key));
 }
 
-int ProfileSwitchTask::run(TaskComposerInput& input) const
+int ProfileSwitchTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   if (input.isAborted())
     return 0;
@@ -56,7 +57,7 @@ int ProfileSwitchTask::run(TaskComposerInput& input) const
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_key_);
+  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     CONSOLE_BRIDGE_logError("Input instruction to ProfileSwitch must be a composite instruction. Returning 0");
@@ -83,10 +84,14 @@ int ProfileSwitchTask::run(TaskComposerInput& input) const
   return cur_composite_profile->return_value;
 }
 
+TaskComposerNode::UPtr ProfileSwitchTask::clone() const
+{
+  return std::make_unique<ProfileSwitchTask>(input_keys_[0], is_conditional_, name_);
+}
+
 bool ProfileSwitchTask::operator==(const ProfileSwitchTask& rhs) const
 {
   bool equal = true;
-  equal &= (input_key_ == rhs.input_key_);
   equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
@@ -95,7 +100,6 @@ bool ProfileSwitchTask::operator!=(const ProfileSwitchTask& rhs) const { return 
 template <class Archive>
 void ProfileSwitchTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
-  ar& BOOST_SERIALIZATION_NVP(input_key_);
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 

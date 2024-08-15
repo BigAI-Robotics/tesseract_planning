@@ -65,10 +65,12 @@ public:
   RasterMotionTask(RasterMotionTask&&) = delete;
   RasterMotionTask& operator=(RasterMotionTask&&) = delete;
 
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
+
   bool operator==(const RasterMotionTask& rhs) const;
   bool operator!=(const RasterMotionTask& rhs) const;
-
-  int run(TaskComposerInput& input) const override final;
 
 protected:
   friend class tesseract_common::Serialization;
@@ -78,9 +80,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void checkTaskInput(const tesseract_common::Any& input) const;
-
-  std::string input_key_;
-  std::string output_key_;
 };
 
 class RasterMotionTaskInfo : public TaskComposerNodeInfo

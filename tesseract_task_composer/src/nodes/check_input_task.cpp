@@ -39,8 +39,9 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 namespace tesseract_planning
 {
 CheckInputTask::CheckInputTask(std::vector<std::string> input_keys, bool is_conditional, std::string name)
-  : TaskComposerTask(is_conditional, std::move(name)), input_keys_(std::move(input_keys))
+  : TaskComposerTask(is_conditional, std::move(name))
 {
+  input_keys_ = std::move(input_keys);
 }
 
 CheckInputTask::CheckInputTask(std::string input_key, bool is_conditional, std::string name)
@@ -48,7 +49,7 @@ CheckInputTask::CheckInputTask(std::string input_key, bool is_conditional, std::
 {
 }
 
-int CheckInputTask::run(TaskComposerInput& input) const
+int CheckInputTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   // Get Composite Profile
   for (const auto& key : input_keys_)
@@ -73,10 +74,14 @@ int CheckInputTask::run(TaskComposerInput& input) const
   return 1;
 }
 
+TaskComposerNode::UPtr CheckInputTask::clone() const
+{
+  return std::make_unique<CheckInputTask>(input_keys_, is_conditional_, name_);
+}
+
 bool CheckInputTask::operator==(const CheckInputTask& rhs) const
 {
   bool equal = true;
-  equal &= (input_keys_ == rhs.input_keys_);
   equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
@@ -85,7 +90,6 @@ bool CheckInputTask::operator!=(const CheckInputTask& rhs) const { return !opera
 template <class Archive>
 void CheckInputTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
-  ar& BOOST_SERIALIZATION_NVP(input_keys_);
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 

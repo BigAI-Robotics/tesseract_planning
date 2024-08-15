@@ -36,7 +36,7 @@ namespace tesseract_planning
 {
 ErrorTask::ErrorTask(bool is_conditional, std::string name) : TaskComposerTask(is_conditional, std::move(name)) {}
 
-int ErrorTask::run(TaskComposerInput& input) const
+int ErrorTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
 {
   CONSOLE_BRIDGE_logDebug("Error");
   input.abort();
@@ -48,6 +48,8 @@ int ErrorTask::run(TaskComposerInput& input) const
   input.addTaskInfo(std::move(info));
   return 0;
 }
+
+TaskComposerNode::UPtr ErrorTask::clone() const { return std::make_unique<ErrorTask>(is_conditional_, name_); }
 
 bool ErrorTask::operator==(const ErrorTask& rhs) const
 {

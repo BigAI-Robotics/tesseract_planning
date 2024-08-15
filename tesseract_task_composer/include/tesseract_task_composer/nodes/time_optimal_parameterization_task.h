@@ -57,7 +57,9 @@ public:
   TimeOptimalParameterizationTask(TimeOptimalParameterizationTask&&) = delete;
   TimeOptimalParameterizationTask& operator=(TimeOptimalParameterizationTask&&) = delete;
 
-  int run(TaskComposerInput& input) const override final;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const TimeOptimalParameterizationTask& rhs) const;
   bool operator!=(const TimeOptimalParameterizationTask& rhs) const;
@@ -83,9 +85,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::string input_key_;
-  std::string output_key_;
 };
 
 class TimeOptimalParameterizationTaskInfo : public TaskComposerNodeInfo

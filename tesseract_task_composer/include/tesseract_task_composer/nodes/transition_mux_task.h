@@ -59,7 +59,9 @@ public:
                     std::string name = "TransitionMuxTask");
   ~TransitionMuxTask() override = default;
 
-  int run(TaskComposerInput& input) const override;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const TransitionMuxTask& rhs) const;
   bool operator!=(const TransitionMuxTask& rhs) const;
@@ -69,11 +71,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::string input_key_;
-  std::string input_prev_key_;
-  std::string input_next_key_;
-  std::string output_key_;
 };
 
 class TransitionMuxTaskInfo : public TaskComposerNodeInfo

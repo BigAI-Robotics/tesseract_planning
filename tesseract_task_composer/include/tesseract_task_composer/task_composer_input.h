@@ -31,11 +31,6 @@
 #include <tesseract_task_composer/task_composer_data_storage.h>
 #include <tesseract_task_composer/task_composer_node_info.h>
 
-namespace tf
-{
-class Executor;
-}
-
 namespace tesseract_planning
 {
 /**
@@ -95,10 +90,7 @@ struct TaskComposerInput
   const ProfileDictionary::ConstPtr profiles;
 
   /** @brief The location data is stored and retrieved during execution */
-  const TaskComposerDataStorage::Ptr data_storage;
-
-  /** @brief The task executor */
-  const std::shared_ptr<tf::Executor> executor;
+  TaskComposerDataStorage::Ptr data_storage;
 
   /** @brief The location where task info is stored during execution */
   TaskComposerNodeInfoContainer task_infos;
@@ -128,12 +120,19 @@ struct TaskComposerInput
    */
   void abort();
 
+  /** @brief Reset abort and data storage to constructed state */
+  void reset();
+
   void addTaskInfo(TaskComposerNodeInfo::UPtr task_info);
   TaskComposerNodeInfo::UPtr getTaskInfo(const boost::uuids::uuid& key) const;
   std::map<boost::uuids::uuid, TaskComposerNodeInfo::UPtr> getTaskInfoMap() const;
 
 protected:
   mutable bool aborted_{ false };
+
+  /** @brief Store a copy of the original data storage for resolving using reset() */
+  TaskComposerDataStorage::ConstPtr original_data_storage_;
+
   //  /** @brief Used to store if process input is aborted which is thread safe */
   //  TaskflowInterface::Ptr interface_{ std::make_shared<TaskflowInterface>() };
 };

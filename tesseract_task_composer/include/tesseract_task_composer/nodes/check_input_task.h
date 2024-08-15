@@ -59,7 +59,9 @@ public:
   CheckInputTask(CheckInputTask&&) = delete;
   CheckInputTask& operator=(CheckInputTask&&) = delete;
 
-  int run(TaskComposerInput& input) const override final;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const CheckInputTask& rhs) const;
   bool operator!=(const CheckInputTask& rhs) const;
@@ -69,8 +71,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::vector<std::string> input_keys_;
 };
 
 class CheckInputTaskInfo : public TaskComposerNodeInfo

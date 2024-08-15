@@ -62,7 +62,9 @@ public:
   UpsampleTrajectoryTask(UpsampleTrajectoryTask&&) = delete;
   UpsampleTrajectoryTask& operator=(UpsampleTrajectoryTask&&) = delete;
 
-  int run(TaskComposerInput& input) const override final;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const UpsampleTrajectoryTask& rhs) const;
   bool operator!=(const UpsampleTrajectoryTask& rhs) const;
@@ -77,9 +79,6 @@ protected:
                 const CompositeInstruction& current_composite,
                 InstructionPoly& start_instruction,
                 double longest_valid_segment_length) const;
-
-  std::string input_key_;
-  std::string output_key_;
 };
 
 class UpsampleTrajectoryTaskInfo : public TaskComposerNodeInfo

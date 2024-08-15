@@ -31,6 +31,8 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_common/timer.h>
 
+#include <tesseract_task_composer/task_composer_future.h>
+#include <tesseract_task_composer/task_composer_executor.h>
 #include <tesseract_task_composer/nodes/raster_motion_task.h>
 #include <tesseract_task_composer/nodes/start_task.h>
 #include <tesseract_task_composer/nodes/cartesian_motion_pipeline_task.h>
@@ -38,19 +40,18 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_task_composer/nodes/transition_mux_task.h>
 #include <tesseract_task_composer/nodes/update_end_state_task.h>
 #include <tesseract_task_composer/nodes/update_start_state_task.h>
-#include <tesseract_task_composer/taskflow_utils.h>
 #include <tesseract_command_language/composite_instruction.h>
 
 namespace tesseract_planning
 {
 RasterMotionTask::RasterMotionTask(std::string input_key, std::string output_key, bool is_conditional, std::string name)
   : TaskComposerTask(is_conditional, std::move(name))
-  , input_key_(std::move(input_key))
-  , output_key_(std::move(output_key))
 {
+  input_keys_.push_back(std::move(input_key));
+  output_keys_.push_back(std::move(output_key));
 }
 
-int RasterMotionTask::run(TaskComposerInput& input) const
+int RasterMotionTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor executor) const
 {
   if (input.isAborted())
     return 0;
@@ -61,7 +62,7 @@ int RasterMotionTask::run(TaskComposerInput& input) const
   timer.start();
   //  saveInputs(*info, input);
 
-  auto input_data_poly = input.data_storage->getData(input_key_);
+  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
 
   // --------------------
   // Check that inputs are valid
@@ -218,18 +219,18 @@ int RasterMotionTask::run(TaskComposerInput& input) const
   task_graph.dump(tc_out_data);  // dump the graph including dynamic tasks
   tc_out_data.close();
 
-  TaskComposerTaskflowContainer tf = convertToTaskflow(task_graph, input);
-
-  // Debug remove
-  std::ofstream out_data;
-  out_data.open(tesseract_common::getTempPath() + "task_composer_raster_subgraph_example_tf.dot");
-  tf.top->dump(out_data);  // dump the graph including dynamic tasks
-  out_data.close();
-
-  input.executor->run(*tf.top).wait();
+  TaskComposerFuture::UPtr future = executor.value().get().run(task_graph, input);
+  future->wait();
 
   if (input.isAborted())
+  {
+    info->message = "Raster subgraph failed";
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    //    saveOutputs(*info, input);
+    info->elapsed_time = timer.elapsedSeconds();
+    input.addTaskInfo(std::move(info));
     return 0;
+  }
 
   program.clear();
   program.appendInstruction(input.data_storage->getData(from_start_pipeline_key).as<CompositeInstruction>());
@@ -241,8 +242,11 @@ int RasterMotionTask::run(TaskComposerInput& input) const
   }
   program.appendInstruction(input.data_storage->getData(to_end_pipeline_key).as<CompositeInstruction>());
 
-  input.data_storage->setData(output_key_, program);
+  input.data_storage->setData(output_keys_[0], program);
 
+  //  saveOutputs(*info, input);
+  info->elapsed_time = timer.elapsedSeconds();
+  input.addTaskInfo(std::move(info));
   return 1;
 }
 
@@ -280,11 +284,14 @@ void RasterMotionTask::checkTaskInput(const tesseract_common::Any& input) const
     throw std::runtime_error("RasterMotionTask, to_end should be a composite");
 }
 
+TaskComposerNode::UPtr RasterMotionTask::clone() const
+{
+  return std::make_unique<RasterMotionTask>(input_keys_[0], output_keys_[0], is_conditional_, name_);
+}
+
 bool RasterMotionTask::operator==(const RasterMotionTask& rhs) const
 {
   bool equal = true;
-  equal &= (input_key_ == rhs.input_key_);
-  equal &= (output_key_ == rhs.output_key_);
   equal &= TaskComposerTask::operator==(rhs);
   return equal;
 }
@@ -293,8 +300,6 @@ bool RasterMotionTask::operator!=(const RasterMotionTask& rhs) const { return !o
 template <class Archive>
 void RasterMotionTask::serialize(Archive& ar, const unsigned int /*version*/)
 {
-  ar& BOOST_SERIALIZATION_NVP(input_key_);
-  ar& BOOST_SERIALIZATION_NVP(output_key_);
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 

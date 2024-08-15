@@ -57,6 +57,8 @@ public:
   OMPLMotionPipelineTask(OMPLMotionPipelineTask&&) = delete;
   OMPLMotionPipelineTask& operator=(OMPLMotionPipelineTask&&) = delete;
 
+  TaskComposerNode::UPtr clone() const override final;
+
   bool operator==(const OMPLMotionPipelineTask& rhs) const;
   bool operator!=(const OMPLMotionPipelineTask& rhs) const;
 
@@ -67,10 +69,8 @@ protected:
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
-  void ctor();
+  void ctor(std::string input_key, std::string output_key);
 
-  std::string input_key_;
-  std::string output_key_;
   bool check_input_{ true };
   bool post_collision_check_{ true };
   bool post_smoothing_{ false };

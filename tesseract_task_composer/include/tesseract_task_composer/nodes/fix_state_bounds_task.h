@@ -60,7 +60,9 @@ public:
   FixStateBoundsTask(FixStateBoundsTask&&) = delete;
   FixStateBoundsTask& operator=(FixStateBoundsTask&&) = delete;
 
-  int run(TaskComposerInput& input) const override final;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const FixStateBoundsTask& rhs) const;
   bool operator!=(const FixStateBoundsTask& rhs) const;
@@ -70,9 +72,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::string input_key_;
-  std::string output_key_;
 };
 
 class FixStateBoundsTaskInfo : public TaskComposerNodeInfo

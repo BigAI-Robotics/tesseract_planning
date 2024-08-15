@@ -57,7 +57,9 @@ public:
                        std::string name = "UpdateStartStateTask");
   ~UpdateStartStateTask() override = default;
 
-  int run(TaskComposerInput& input) const override;
+  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override;
+
+  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const UpdateStartStateTask& rhs) const;
   bool operator!=(const UpdateStartStateTask& rhs) const;
@@ -67,10 +69,6 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
-
-  std::string input_key_;
-  std::string input_prev_key_;
-  std::string output_key_;
 };
 
 class UpdateStartStateTaskInfo : public TaskComposerNodeInfo
