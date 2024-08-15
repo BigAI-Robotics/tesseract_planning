@@ -51,7 +51,10 @@ boost::uuids::uuid TaskComposerGraph::addNode(TaskComposerNode::UPtr task_node)
 void TaskComposerGraph::addEdges(boost::uuids::uuid source, std::vector<boost::uuids::uuid> destinations)
 {
   TaskComposerNode::Ptr& node = nodes_.at(source);
-  node->edges_.insert(node->edges_.end(), destinations.begin(), destinations.end());
+  node->outbound_edges_.insert(node->outbound_edges_.end(), destinations.begin(), destinations.end());
+
+  for (const auto& d : destinations)
+    nodes_.at(d)->inbound_edges_.push_back(source);
 }
 
 std::map<boost::uuids::uuid, TaskComposerNode::ConstPtr> TaskComposerGraph::getNodes() const
@@ -68,6 +71,7 @@ void TaskComposerGraph::dump(std::ostream& os) const
 
 void TaskComposerGraph::dumpHelper(std::ostream& os, const TaskComposerGraph& /*parent*/) const
 {
+  std::ostringstream sub_graphs;
   const std::string tmp = toString(uuid_);
   os << "subgraph cluster_" << tmp << " {\n color=black;\n label = \"" << name_ << "\\n(" << uuid_str_ << ")\";";
   for (const auto& pair : nodes_)
@@ -76,15 +80,24 @@ void TaskComposerGraph::dumpHelper(std::ostream& os, const TaskComposerGraph& /*
     if (node->getType() == TaskComposerNodeType::TASK)
       node->dump(os);
     else if (node->getType() == TaskComposerNodeType::GRAPH)
-      static_cast<const TaskComposerGraph&>(*node).dumpHelper(os, *this);
+    {
+      const std::string tmp = toString(node->uuid_, "node_");
+      os << std::endl
+         << tmp << " [shape=box3d, label=\"Subgraph: " << node->name_ << "\\n(" << node->uuid_str_
+         << ")\", color=blue, margin=\"0.1\"];\n";
+      static_cast<const TaskComposerGraph&>(*node).dumpHelper(sub_graphs, *this);
+    }
   }
 
-  for (const auto& edge : edges_)
+  for (const auto& edge : outbound_edges_)
   {
     os << "node_" << tmp << " -> " << toString(edge, "node_") << ";\n";
   }
 
   os << "}\n";
+
+  // Dump subgraphs outside this subgraph
+  os << sub_graphs.str();
 }
 
 int TaskComposerGraph::run(TaskComposerInput& /*input*/) const
