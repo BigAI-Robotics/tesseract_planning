@@ -31,12 +31,13 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <memory>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_motion_planners/simple/profile/simple_planner_profile.h>
-#include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
+#include <tesseract_motion_planners/simple/profile/simple_planner_legacy_profile.h>
 
 namespace tesseract_planning
 {
-class SimplePlannerFixedSizeLegacyPlanProfile : public SimplePlannerPlanProfile
+class KinematicGroupInstructionInfo;
+
+class SimplePlannerFixedSizeLegacyPlanProfile : public SimplePlannerLegacyPlanProfile
 {
 public:
   using Ptr = std::shared_ptr<SimplePlannerFixedSizeLegacyPlanProfile>;

@@ -27,6 +27,7 @@
 #include <tesseract_motion_planners/3mo/profile/3mo_planner_ik_plan_profile.h>
 #include <tesseract_motion_planners/3mo/3mo_utils.h>
 #include <tesseract_motion_planners/core/utils.h>
+#include <tesseract_motion_planners/core/interpolation.h>
 
 using namespace tesseract_kinematics;
 

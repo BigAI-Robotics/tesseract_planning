@@ -3,7 +3,8 @@
 
 #include <tesseract_collision/core/discrete_contact_manager.h>
 #include <tesseract_kinematics/core/utils.h>
-#include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
+// #include <tesseract_motion_planners/simple/profile/simple_planner_utils.h>
+#include <tesseract_motion_planners/core/interpolation.h>
 #include <tesseract_command_language/mixed_waypoint.h>
 #include <AStar.hpp>
 
