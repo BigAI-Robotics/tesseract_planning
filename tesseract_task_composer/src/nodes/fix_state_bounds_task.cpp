@@ -49,50 +49,53 @@ FixStateBoundsTask::FixStateBoundsTask(std::string input_key,
   output_keys_.push_back(std::move(output_key));
 }
 
-int FixStateBoundsTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr FixStateBoundsTask::runImpl(TaskComposerInput& input,
+                                                       OptionalTaskComposerExecutor /*executor*/) const
 {
-  if (input.isAborted())
-    return 0;
-
-  auto info = std::make_unique<FixStateBoundsTaskInfo>(uuid_, name_);
+  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
   info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   tesseract_common::Timer timer;
   timer.start();
-  //  saveInputs(*info, input);
 
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
+  auto input_data_poly = input.data_storage.getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     info->message = "Input instruction to FixStateBounds must be a composite instruction";
-    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   auto& ci = input_data_poly.as<CompositeInstruction>();
-  const tesseract_common::ManipulatorInfo& manip_info = input.manip_info;
-  auto joint_group = input.env->getJointGroup(manip_info.manipulator);
+  ci.setManipulatorInfo(ci.getManipulatorInfo().getCombined(input.problem.manip_info));
+  const tesseract_common::ManipulatorInfo& manip_info = ci.getManipulatorInfo();
+  auto joint_group = input.problem.env->getJointGroup(manip_info.manipulator);
   auto limits = joint_group->getLimits();
 
   // Get Composite Profile
   std::string profile = ci.getProfile();
-  profile = getProfileString(name_, profile, input.composite_profile_remapping);
+  profile = getProfileString(name_, profile, input.problem.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<FixStateBoundsProfile>(name_, profile, *input.profiles, std::make_shared<FixStateBoundsProfile>());
   cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   if (cur_composite_profile->mode == FixStateBoundsProfile::Settings::DISABLED)
   {
+    input.data_storage.setData(output_keys_[0], input_data_poly);
+    info->message = "Successful, DISABLED";
     info->return_value = 1;
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 1;
+    return info;
   }
 
   limits.joint_limits.col(0) = limits.joint_limits.col(0).array() + cur_composite_profile->lower_bounds_reduction;
@@ -110,10 +113,9 @@ int FixStateBoundsTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
           if (!clampToJointLimits(
                   first_mi->getWaypoint(), limits.joint_limits, cur_composite_profile->max_deviation_global))
           {
-            //            saveOutputs(*info, input);
+            info->message = "Failed to clamp to joint limits";
             info->elapsed_time = timer.elapsedSeconds();
-            input.addTaskInfo(std::move(info));
-            return 0;
+            return info;
           }
         }
       }
@@ -130,10 +132,9 @@ int FixStateBoundsTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
           if (!clampToJointLimits(
                   last_mi->getWaypoint(), limits.joint_limits, cur_composite_profile->max_deviation_global))
           {
-            //            saveOutputs(*info, input);
+            info->message = "Failed to clamp to joint limits";
             info->elapsed_time = timer.elapsedSeconds();
-            input.addTaskInfo(std::move(info));
-            return 0;
+            return info;
           }
         }
       }
@@ -144,12 +145,12 @@ int FixStateBoundsTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
       auto flattened = ci.flatten(moveFilter);
       if (flattened.empty())
       {
-        CONSOLE_BRIDGE_logWarn("FixStateBoundsTask found no MoveInstructions to process");
+        input.data_storage.setData(output_keys_[0], input_data_poly);
+        info->message = "FixStateBoundsTask found no MoveInstructions to process";
         info->return_value = 1;
-        //        saveOutputs(*info, input);
         info->elapsed_time = timer.elapsedSeconds();
-        input.addTaskInfo(std::move(info));
-        return 1;
+        CONSOLE_BRIDGE_logWarn("%s", info->message.c_str());
+        return info;
       }
 
       bool inside_limits = true;
@@ -167,34 +168,27 @@ int FixStateBoundsTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
         auto& plan = instruction.get().as<MoveInstructionPoly>();
         if (!clampToJointLimits(plan.getWaypoint(), limits.joint_limits, cur_composite_profile->max_deviation_global))
         {
-          //          saveOutputs(*info, input);
+          info->message = "Failed to clamp to joint limits";
           info->elapsed_time = timer.elapsedSeconds();
-          input.addTaskInfo(std::move(info));
-          return 0;
+          return info;
         }
       }
     }
     break;
     case FixStateBoundsProfile::Settings::DISABLED:
+      input.data_storage.setData(output_keys_[0], input_data_poly);
+      info->message = "Successful, DISABLED";
       info->return_value = 1;
-      //      saveOutputs(*info, input);
       info->elapsed_time = timer.elapsedSeconds();
-      input.addTaskInfo(std::move(info));
-      return 1;
+      return info;
   }
 
-  CONSOLE_BRIDGE_logDebug("FixStateBoundsTask succeeded");
-  input.data_storage->setData(output_keys_[0], input_data_poly);
+  input.data_storage.setData(output_keys_[0], input_data_poly);
+  info->message = "Successful";
   info->return_value = 1;
-  //  saveOutputs(*info, input);
   info->elapsed_time = timer.elapsedSeconds();
-  input.addTaskInfo(std::move(info));
-  return 1;
-}
-
-TaskComposerNode::UPtr FixStateBoundsTask::clone() const
-{
-  return std::make_unique<FixStateBoundsTask>(input_keys_[0], output_keys_[0], is_conditional_, name_);
+  CONSOLE_BRIDGE_logDebug("FixStateBoundsTask succeeded");
+  return info;
 }
 
 bool FixStateBoundsTask::operator==(const FixStateBoundsTask& rhs) const
@@ -211,33 +205,8 @@ void FixStateBoundsTask::serialize(Archive& ar, const unsigned int /*version*/)
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
-FixStateBoundsTaskInfo::FixStateBoundsTaskInfo(boost::uuids::uuid uuid, std::string name)
-  : TaskComposerNodeInfo(uuid, std::move(name))
-{
-}
-
-TaskComposerNodeInfo::UPtr FixStateBoundsTaskInfo::clone() const
-{
-  return std::make_unique<FixStateBoundsTaskInfo>(*this);
-}
-
-bool FixStateBoundsTaskInfo::operator==(const FixStateBoundsTaskInfo& rhs) const
-{
-  bool equal = true;
-  equal &= TaskComposerNodeInfo::operator==(rhs);
-  return equal;
-}
-bool FixStateBoundsTaskInfo::operator!=(const FixStateBoundsTaskInfo& rhs) const { return !operator==(rhs); }
-
-template <class Archive>
-void FixStateBoundsTaskInfo::serialize(Archive& ar, const unsigned int /*version*/)
-{
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNodeInfo);
-}
 }  // namespace tesseract_planning
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::FixStateBoundsTask)
 BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::FixStateBoundsTask)
-TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::FixStateBoundsTaskInfo)
-BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::FixStateBoundsTaskInfo)

@@ -24,14 +24,39 @@
  * limitations under the License.
  */
 
+#include <tesseract_common/macros.h>
+TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
+#include <boost/serialization/unordered_map.hpp>
+TESSERACT_COMMON_IGNORE_WARNINGS_POP
+
 #include <tesseract_task_composer/task_composer_data_storage.h>
 namespace tesseract_planning
 {
 TaskComposerDataStorage::TaskComposerDataStorage(const TaskComposerDataStorage& other) { *this = other; }
 TaskComposerDataStorage& TaskComposerDataStorage::operator=(const TaskComposerDataStorage& other)
 {
-  std::shared_lock lock(other.mutex_);
+  std::shared_lock lhs_lock(mutex_, std::defer_lock);
+  std::shared_lock rhs_lock(other.mutex_, std::defer_lock);
+  std::scoped_lock lock{ lhs_lock, rhs_lock };
+
   data_ = other.data_;
+  return *this;
+}
+TaskComposerDataStorage::TaskComposerDataStorage(TaskComposerDataStorage&& other) noexcept
+{
+  std::shared_lock lhs_lock(mutex_, std::defer_lock);
+  std::shared_lock rhs_lock(other.mutex_, std::defer_lock);
+  std::scoped_lock lock{ lhs_lock, rhs_lock };
+
+  data_ = std::move(other.data_);
+}
+TaskComposerDataStorage& TaskComposerDataStorage::operator=(TaskComposerDataStorage&& other) noexcept
+{
+  std::shared_lock lhs_lock(mutex_, std::defer_lock);
+  std::shared_lock rhs_lock(other.mutex_, std::defer_lock);
+  std::scoped_lock lock{ lhs_lock, rhs_lock };
+
+  data_ = std::move(other.data_);
   return *this;
 }
 
@@ -44,7 +69,7 @@ bool TaskComposerDataStorage::hasKey(const std::string& key)
 void TaskComposerDataStorage::setData(const std::string& key, tesseract_common::AnyPoly data)
 {
   std::unique_lock lock(mutex_);
-  data_[key] = data;
+  data_[key] = std::move(data);
 }
 
 tesseract_common::AnyPoly TaskComposerDataStorage::getData(const std::string& key) const
@@ -57,4 +82,34 @@ tesseract_common::AnyPoly TaskComposerDataStorage::getData(const std::string& ke
   return it->second;
 }
 
+void TaskComposerDataStorage::removeData(const std::string& key)
+{
+  std::unique_lock lock(mutex_);
+  data_.erase(key);
+}
+
+bool TaskComposerDataStorage::operator==(const TaskComposerDataStorage& rhs) const
+{
+  std::shared_lock lhs_lock(mutex_, std::defer_lock);
+  std::shared_lock rhs_lock(rhs.mutex_, std::defer_lock);
+  std::scoped_lock lock{ lhs_lock, rhs_lock };
+
+  bool equal = true;
+  equal &= data_ == rhs.data_;
+  return equal;
+}
+
+bool TaskComposerDataStorage::operator!=(const TaskComposerDataStorage& rhs) const { return !operator==(rhs); }
+
+template <class Archive>
+void TaskComposerDataStorage::serialize(Archive& ar, const unsigned int /*version*/)
+{
+  std::unique_lock lock(mutex_);
+  ar& boost::serialization::make_nvp("data", data_);
+}
+
 }  // namespace tesseract_planning
+
+#include <tesseract_common/serialization.h>
+TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::TaskComposerDataStorage)
+BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::TaskComposerDataStorage)

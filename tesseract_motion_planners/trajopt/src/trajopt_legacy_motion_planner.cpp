@@ -411,8 +411,8 @@ TrajOptLegacyMotionPlanner::createProblem(const PlannerRequest& request) const
       std::string profile = getProfileString(name_, plan_instruction.getProfile(), request.plan_profile_remapping);
       TrajOptPlanProfile::ConstPtr cur_plan_profile = getProfile<TrajOptPlanProfile>(
           name_, profile, *request.profiles, std::make_shared<TrajOptDefaultPlanProfile>());
-      //      cur_plan_profile = applyProfileOverrides(name_, profile, cur_plan_profile,
-      //      plan_instruction.profile_overrides);
+      cur_plan_profile =
+          applyProfileOverrides(name_, profile, cur_plan_profile, plan_instruction.getProfileOverrides());
       if (!cur_plan_profile)
         throw std::runtime_error("TrajOptPlannerUniversalConfig: Invalid profile");
 
@@ -424,9 +424,8 @@ TrajOptLegacyMotionPlanner::createProblem(const PlannerRequest& request) const
       {
         auto cur_path_plan_profile = getProfile<TrajOptPlanProfile>(
             name_, path_profile, *request.profiles, std::make_shared<TrajOptDefaultPlanProfile>());
-        //        cur_path_plan_profile =
-        //            applyProfileOverrides(name_, path_profile, cur_path_plan_profile,
-        //            plan_instruction.profile_overrides);
+        cur_path_plan_profile = applyProfileOverrides(
+            name_, path_profile, cur_path_plan_profile, plan_instruction.getPathProfileOverrides());
         if (!cur_path_plan_profile)
           throw std::runtime_error("TrajOptPlannerUniversalConfig: Invalid path profile");
 

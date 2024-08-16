@@ -427,8 +427,8 @@ std::shared_ptr<TrajOptIfoptProblem> TrajOptIfoptLegacyMotionPlanner::createProb
       std::string profile = getProfileString(name_, plan_instruction.getProfile(), request.plan_profile_remapping);
       TrajOptIfoptPlanProfile::ConstPtr cur_plan_profile = getProfile<TrajOptIfoptPlanProfile>(
           name_, profile, *request.profiles, std::make_shared<TrajOptIfoptDefaultPlanProfile>());
-      //      cur_plan_profile = applyProfileOverrides(name_, profile, cur_plan_profile,
-      //      plan_instruction.profile_overrides);
+      cur_plan_profile =
+          applyProfileOverrides(name_, profile, cur_plan_profile, plan_instruction.getProfileOverrides());
       if (!cur_plan_profile)
         throw std::runtime_error("DefaultTrajoptIfoptProblemGenerator: Invalid profile");
 
@@ -440,9 +440,8 @@ std::shared_ptr<TrajOptIfoptProblem> TrajOptIfoptLegacyMotionPlanner::createProb
       {
         auto cur_path_plan_profile = getProfile<TrajOptIfoptPlanProfile>(
             name_, path_profile, *request.profiles, std::make_shared<TrajOptIfoptDefaultPlanProfile>());
-        //        cur_path_plan_profile =
-        //            applyProfileOverrides(name_, path_profile, cur_path_plan_profile,
-        //            plan_instruction.profile_overrides);
+        cur_path_plan_profile = applyProfileOverrides(
+            name_, path_profile, cur_path_plan_profile, plan_instruction.getPathProfileOverrides());
         if (!cur_path_plan_profile)
           throw std::runtime_error("DefaultTrajoptIfoptProblemGenerator: Invalid path profile");
 

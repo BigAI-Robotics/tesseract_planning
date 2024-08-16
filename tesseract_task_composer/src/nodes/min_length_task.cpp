@@ -33,7 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 #include <tesseract_common/timer.h>
 
 #include <tesseract_task_composer/nodes/min_length_task.h>
-#include <tesseract_task_composer/profiles/seed_min_length_profile.h>
+#include <tesseract_task_composer/profiles/min_length_profile.h>
 
 #include <tesseract_motion_planners/core/utils.h>
 #include <tesseract_motion_planners/core/interpolation.h>
@@ -50,35 +50,39 @@ MinLengthTask::MinLengthTask(std::string input_key, std::string output_key, bool
   output_keys_.push_back(std::move(output_key));
 }
 
-int MinLengthTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr MinLengthTask::runImpl(TaskComposerInput& input,
+                                                  OptionalTaskComposerExecutor /*executor*/) const
 {
-  if (input.isAborted())
-    return 0;
-
-  auto info = std::make_unique<MinLengthTaskInfo>(uuid_, name_);
+  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
   info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   tesseract_common::Timer timer;
   timer.start();
   //  saveInputs(*info, input);
 
   // Check that inputs are valid
-  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
+  auto input_data_poly = input.data_storage.getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
-    CONSOLE_BRIDGE_logError("Input seed to SeedMinLengthTask must be a composite instruction");
-    //    saveOutputs(*info, input);
+    info->message = "Input seed to MinLengthTask must be a composite instruction";
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   // Get Composite Profile
   const auto& ci = input_data_poly.as<CompositeInstruction>();
   long cnt = ci.getMoveInstructionCount();
   std::string profile = ci.getProfile();
-  profile = getProfileString(name_, profile, input.composite_profile_remapping);
+  profile = getProfileString(name_, profile, input.problem.composite_profile_remapping);
   auto cur_composite_profile =
-      getProfile<SeedMinLengthProfile>(name_, profile, *input.profiles, std::make_shared<SeedMinLengthProfile>());
+      getProfile<MinLengthProfile>(name_, profile, *input.profiles, std::make_shared<MinLengthProfile>());
   cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   if (cnt < cur_composite_profile->min_length)
@@ -90,8 +94,8 @@ int MinLengthTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*
     // Fill out request and response
     PlannerRequest request;
     request.instructions = ci;
-    request.env_state = input.env->getState();
-    request.env = input.env;
+    request.env_state = input.problem.env->getState();
+    request.env = input.problem.env;
 
     // Set up planner
     SimpleMotionPlanner planner;
@@ -114,31 +118,24 @@ int MinLengthTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*
 
     if (!response.successful)
     {
-      CONSOLE_BRIDGE_logError("SeedMinLengthTask, failed to subdivid!");
-      //    saveOutputs(*info, input);
+      info->message = "MinLengthTask, failed to subdivid!";
       info->elapsed_time = timer.elapsedSeconds();
-      input.addTaskInfo(std::move(info));
-      return 0;
+      CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+      return info;
     }
 
-    input.data_storage->setData(output_keys_[0], response.results);
+    input.data_storage.setData(output_keys_[0], response.results);
   }
   else
   {
-    input.data_storage->setData(output_keys_[0], ci);
+    input.data_storage.setData(output_keys_[0], ci);
   }
 
-  CONSOLE_BRIDGE_logDebug("Seed Min Length Task Succeeded!");
+  info->message = "Successful";
   info->return_value = 1;
-  //  saveOutputs(*info, input);
   info->elapsed_time = timer.elapsedSeconds();
-  input.addTaskInfo(std::move(info));
-  return 1;
-}
-
-TaskComposerNode::UPtr MinLengthTask::clone() const
-{
-  return std::make_unique<MinLengthTask>(input_keys_[0], output_keys_[0], is_conditional_, name_);
+  CONSOLE_BRIDGE_logDebug("Seed Min Length Task Succeeded!");
+  return info;
 }
 
 bool MinLengthTask::operator==(const MinLengthTask& rhs) const
@@ -155,30 +152,8 @@ void MinLengthTask::serialize(Archive& ar, const unsigned int /*version*/)
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
-MinLengthTaskInfo::MinLengthTaskInfo(boost::uuids::uuid uuid, std::string name)
-  : TaskComposerNodeInfo(uuid, std::move(name))
-{
-}
-
-TaskComposerNodeInfo::UPtr MinLengthTaskInfo::clone() const { return std::make_unique<MinLengthTaskInfo>(*this); }
-
-bool MinLengthTaskInfo::operator==(const MinLengthTaskInfo& rhs) const
-{
-  bool equal = true;
-  equal &= TaskComposerNodeInfo::operator==(rhs);
-  return equal;
-}
-bool MinLengthTaskInfo::operator!=(const MinLengthTaskInfo& rhs) const { return !operator==(rhs); }
-
-template <class Archive>
-void MinLengthTaskInfo::serialize(Archive& ar, const unsigned int /*version*/)
-{
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNodeInfo);
-}
 }  // namespace tesseract_planning
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::MinLengthTask)
 BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::MinLengthTask)
-TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::MinLengthTaskInfo)
-BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::MinLengthTaskInfo)

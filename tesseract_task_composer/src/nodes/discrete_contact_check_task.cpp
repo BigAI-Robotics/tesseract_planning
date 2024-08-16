@@ -46,44 +46,46 @@ DiscreteContactCheckTask::DiscreteContactCheckTask(std::string input_key, bool i
   input_keys_.push_back(std::move(input_key));
 }
 
-int DiscreteContactCheckTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr DiscreteContactCheckTask::runImpl(TaskComposerInput& input,
+                                                             OptionalTaskComposerExecutor /*executor*/) const
 {
-  if (input.isAborted())
-    return 0;
-
   auto info = std::make_unique<DiscreteContactCheckTaskInfo>(uuid_, name_);
   info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   tesseract_common::Timer timer;
   timer.start();
-  //  saveInputs(*info, input);
 
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
+  auto input_data_poly = input.data_storage.getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     info->message = "Input seed to DiscreteContactCheckTask must be a composite instruction";
-    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   // Get Composite Profile
   const auto& ci = input_data_poly.as<CompositeInstruction>();
   std::string profile = ci.getProfile();
-  profile = getProfileString(name_, profile, input.composite_profile_remapping);
+  profile = getProfileString(name_, profile, input.problem.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<ContactCheckProfile>(name_, profile, *input.profiles, std::make_shared<ContactCheckProfile>());
   cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
   // Get state solver
-  tesseract_common::ManipulatorInfo manip_info = ci.getManipulatorInfo().getCombined(input.manip_info);
-  tesseract_kinematics::JointGroup::UPtr manip = input.env->getJointGroup(manip_info.manipulator);
-  tesseract_scene_graph::StateSolver::UPtr state_solver = input.env->getStateSolver();
-  tesseract_collision::DiscreteContactManager::Ptr manager = input.env->getDiscreteContactManager();
+  tesseract_common::ManipulatorInfo manip_info = ci.getManipulatorInfo().getCombined(input.problem.manip_info);
+  tesseract_kinematics::JointGroup::UPtr manip = input.problem.env->getJointGroup(manip_info.manipulator);
+  tesseract_scene_graph::StateSolver::UPtr state_solver = input.problem.env->getStateSolver();
+  tesseract_collision::DiscreteContactManager::Ptr manager = input.problem.env->getDiscreteContactManager();
 
   manager->setActiveCollisionObjects(manip->getActiveLinkNames());
   manager->applyContactManagerConfig(cur_composite_profile->config.contact_manager_config);
@@ -91,7 +93,8 @@ int DiscreteContactCheckTask::run(TaskComposerInput& input, OptionalTaskComposer
   std::vector<tesseract_collision::ContactResultMap> contacts;
   if (contactCheckProgram(contacts, *manager, *state_solver, ci, cur_composite_profile->config))
   {
-    CONSOLE_BRIDGE_logInform("Results are not contact free for process input: %s !", ci.getDescription().c_str());
+    info->message = "Results are not contact free for process input: " + ci.getDescription();
+    CONSOLE_BRIDGE_logInform("%s", info->message.c_str());
     for (std::size_t i = 0; i < contacts.size(); i++)
       for (const auto& contact_vec : contacts[i])
         for (const auto& contact : contact_vec.second)
@@ -99,23 +102,15 @@ int DiscreteContactCheckTask::run(TaskComposerInput& input, OptionalTaskComposer
                                    contact.link_names[1] + " Dist: " + std::to_string(contact.distance))
                                       .c_str());
     info->contact_results = contacts;
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    return info;
   }
 
-  CONSOLE_BRIDGE_logDebug("Discrete contact check succeeded");
+  info->message = "Discrete contact check succeeded";
   info->return_value = 1;
-  //  saveOutputs(*info, input);
   info->elapsed_time = timer.elapsedSeconds();
-  input.addTaskInfo(std::move(info));
-  return 1;
-}
-
-TaskComposerNode::UPtr DiscreteContactCheckTask::clone() const
-{
-  return std::make_unique<DiscreteContactCheckTask>(input_keys_[0], is_conditional_, name_);
+  CONSOLE_BRIDGE_logDebug("%s", info->message.c_str());
+  return info;
 }
 
 bool DiscreteContactCheckTask::operator==(const DiscreteContactCheckTask& rhs) const

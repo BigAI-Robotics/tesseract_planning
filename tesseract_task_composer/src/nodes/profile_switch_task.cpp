@@ -43,34 +43,37 @@ ProfileSwitchTask::ProfileSwitchTask(std::string input_key, bool is_conditional,
   input_keys_.push_back(std::move(input_key));
 }
 
-int ProfileSwitchTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr ProfileSwitchTask::runImpl(TaskComposerInput& input,
+                                                      OptionalTaskComposerExecutor /*executor*/) const
 {
-  if (input.isAborted())
-    return 0;
-
-  auto info = std::make_unique<ProfileSwitchTaskInfo>(uuid_, name_);
+  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
   info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   tesseract_common::Timer timer;
   timer.start();
-  //  saveInputs(*info, input);
 
   // --------------------
   // Check that inputs are valid
   // --------------------
-  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
+  auto input_data_poly = input.data_storage.getData(input_keys_[0]);
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
-    CONSOLE_BRIDGE_logError("Input instruction to ProfileSwitch must be a composite instruction. Returning 0");
-    //    saveOutputs(*info, input);
+    info->message = "Input instruction to ProfileSwitch must be a composite instruction";
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   // Get Composite Profile
   const auto& ci = input_data_poly.as<CompositeInstruction>();
   std::string profile = ci.getProfile();
-  profile = getProfileString(name_, profile, input.composite_profile_remapping);
+  profile = getProfileString(name_, profile, input.problem.composite_profile_remapping);
   auto cur_composite_profile =
       getProfile<ProfileSwitchProfile>(name_, profile, *input.profiles, std::make_shared<ProfileSwitchProfile>());
   cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
@@ -78,15 +81,10 @@ int ProfileSwitchTask::run(TaskComposerInput& input, OptionalTaskComposerExecuto
   // Return the value specified in the profile
   CONSOLE_BRIDGE_logDebug("ProfileSwitchProfile returning %d", cur_composite_profile->return_value);
 
-  //  saveOutputs(*info, input);
+  info->message = "Successful";
+  info->return_value = cur_composite_profile->return_value;
   info->elapsed_time = timer.elapsedSeconds();
-  input.addTaskInfo(std::move(info));
-  return cur_composite_profile->return_value;
-}
-
-TaskComposerNode::UPtr ProfileSwitchTask::clone() const
-{
-  return std::make_unique<ProfileSwitchTask>(input_keys_[0], is_conditional_, name_);
+  return info;
 }
 
 bool ProfileSwitchTask::operator==(const ProfileSwitchTask& rhs) const
@@ -103,33 +101,8 @@ void ProfileSwitchTask::serialize(Archive& ar, const unsigned int /*version*/)
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
-ProfileSwitchTaskInfo::ProfileSwitchTaskInfo(boost::uuids::uuid uuid, std::string name)
-  : TaskComposerNodeInfo(uuid, std::move(name))
-{
-}
-
-TaskComposerNodeInfo::UPtr ProfileSwitchTaskInfo::clone() const
-{
-  return std::make_unique<ProfileSwitchTaskInfo>(*this);
-}
-
-bool ProfileSwitchTaskInfo::operator==(const ProfileSwitchTaskInfo& rhs) const
-{
-  bool equal = true;
-  equal &= TaskComposerNodeInfo::operator==(rhs);
-  return equal;
-}
-bool ProfileSwitchTaskInfo::operator!=(const ProfileSwitchTaskInfo& rhs) const { return !operator==(rhs); }
-
-template <class Archive>
-void ProfileSwitchTaskInfo::serialize(Archive& ar, const unsigned int /*version*/)
-{
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNodeInfo);
-}
 }  // namespace tesseract_planning
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::ProfileSwitchTask)
 BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::ProfileSwitchTask)
-TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::ProfileSwitchTaskInfo)
-BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::ProfileSwitchTaskInfo)

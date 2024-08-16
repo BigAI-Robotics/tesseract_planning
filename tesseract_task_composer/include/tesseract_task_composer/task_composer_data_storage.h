@@ -47,10 +47,11 @@ public:
   using ConstUPtr = std::unique_ptr<const TaskComposerDataStorage>;
 
   TaskComposerDataStorage() = default;
+  ~TaskComposerDataStorage() = default;
   TaskComposerDataStorage(const TaskComposerDataStorage&);
   TaskComposerDataStorage& operator=(const TaskComposerDataStorage&);
-  TaskComposerDataStorage(TaskComposerDataStorage&&) = default;
-  TaskComposerDataStorage& operator=(TaskComposerDataStorage&&) = default;
+  TaskComposerDataStorage(TaskComposerDataStorage&&) noexcept;
+  TaskComposerDataStorage& operator=(TaskComposerDataStorage&&) noexcept;
 
   /**
    * @brief Check if key exists
@@ -74,10 +75,30 @@ public:
    */
   tesseract_common::AnyPoly getData(const std::string& key) const;
 
+  /**
+   * @brief Remove data for the provide key
+   * @param key The key to remove data for
+   */
+  void removeData(const std::string& key);
+
+  bool operator==(const TaskComposerDataStorage& rhs) const;
+  bool operator!=(const TaskComposerDataStorage& rhs) const;
+
 protected:
+  friend class tesseract_common::Serialization;
+  friend class boost::serialization::access;
+
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int version);  // NOLINT
+
   mutable std::shared_mutex mutex_;
   std::unordered_map<std::string, tesseract_common::AnyPoly> data_;
 };
 
 }  // namespace tesseract_planning
+
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/tracking.hpp>
+BOOST_CLASS_EXPORT_KEY2(tesseract_planning::TaskComposerDataStorage, "TaskComposerDataStorage")
+
 #endif  // TESSERACT_TASK_COMPOSER_TASK_COMPOSER_DATA_STORAGE_H

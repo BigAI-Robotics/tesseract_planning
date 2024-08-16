@@ -24,82 +24,70 @@
  * limitations under the License.
  */
 
+#include <tesseract_common/macros.h>
+TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/shared_ptr.hpp>
+#include <tesseract_common/atomic_serialization.h>
+TESSERACT_COMMON_IGNORE_WARNINGS_POP
+
 #include <tesseract_task_composer/task_composer_input.h>
 
 namespace tesseract_planning
 {
-TaskComposerInput::TaskComposerInput(TaskComposerDataStorage::Ptr data_storage) : data_storage(std::move(data_storage))
-{
-}
-
-TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                                     tesseract_common::ManipulatorInfo manip_info,
-                                     ProfileDictionary::ConstPtr profiles,
-                                     TaskComposerDataStorage::Ptr data_storage)
-  : env(std::move(env))
-  , manip_info(std::move(manip_info))
-  , profiles(std::move(profiles))
-  , data_storage(std::move(data_storage))
-  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
-{
-}
-
-TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                                     tesseract_common::ManipulatorInfo manip_info,
-                                     ProfileRemapping move_profile_remapping,
-                                     ProfileRemapping composite_profile_remapping,
-                                     ProfileDictionary::ConstPtr profiles,
-                                     TaskComposerDataStorage::Ptr data_storage)
-  : env(std::move(env))
-  , manip_info(std::move(manip_info))
-  , move_profile_remapping(std::move(move_profile_remapping))
-  , composite_profile_remapping(std::move(composite_profile_remapping))
-  , profiles(std::move(profiles))
-  , data_storage(std::move(data_storage))
-  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
-{
-}
-
-TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                                     ProfileRemapping move_profile_remapping,
-                                     ProfileRemapping composite_profile_remapping,
-                                     ProfileDictionary::ConstPtr profiles,
-                                     TaskComposerDataStorage::Ptr data_storage)
-  : env(std::move(env))
-  , move_profile_remapping(std::move(move_profile_remapping))
-  , composite_profile_remapping(std::move(composite_profile_remapping))
-  , profiles(std::move(profiles))
-  , data_storage(std::move(data_storage))
-  , original_data_storage_(std::make_shared<TaskComposerDataStorage>(*(this->data_storage)))
-{
-}
-
-TaskComposerInput::TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                                     ProfileDictionary::ConstPtr profiles,
-                                     TaskComposerDataStorage::Ptr data_storage)
-  : env(std::move(env)), profiles(std::move(profiles)), data_storage(std::move(data_storage))
+TaskComposerInput::TaskComposerInput(TaskComposerProblem problem, ProfileDictionary::ConstPtr profiles)
+  : problem(std::move(problem)), profiles(std::move(profiles)), data_storage(this->problem.input_data)
 {
 }
 
 bool TaskComposerInput::isAborted() const { return aborted_; }
+
+bool TaskComposerInput::isSuccessful() const { return !aborted_; }
 
 void TaskComposerInput::abort() { aborted_ = true; }
 
 void TaskComposerInput::reset()
 {
   aborted_ = false;
-  data_storage = std::make_shared<TaskComposerDataStorage>(*original_data_storage_);
+  data_storage = problem.input_data;
+  task_infos.clear();
 }
 
-void TaskComposerInput::addTaskInfo(TaskComposerNodeInfo::UPtr task_info) { task_infos.addInfo(std::move(task_info)); }
-
-TaskComposerNodeInfo::UPtr TaskComposerInput::getTaskInfo(const boost::uuids::uuid& key) const
+bool TaskComposerInput::operator==(const TaskComposerInput& rhs) const
 {
-  return task_infos[key];
+  bool equal = true;
+  equal &= problem == rhs.problem;
+  //  equal &= tesseract_common::pointersEqual(profiles, rhs.profiles);
+  equal &= data_storage == rhs.data_storage;
+  equal &= task_infos == rhs.task_infos;
+  equal &= aborted_ == rhs.aborted_;
+  return equal;
 }
 
-std::map<boost::uuids::uuid, TaskComposerNodeInfo::UPtr> TaskComposerInput::getTaskInfoMap() const
+bool TaskComposerInput::operator!=(const TaskComposerInput& rhs) const { return !operator==(rhs); }
+
+TaskComposerInput::TaskComposerInput(const TaskComposerInput& rhs)
+  : problem(rhs.problem)
+  , profiles(rhs.profiles)
+  , data_storage(rhs.data_storage)
+  , task_infos(rhs.task_infos)
+  , aborted_(rhs.aborted_.load())
 {
-  return task_infos.getInfoMap();
 }
+
+template <class Archive>
+void TaskComposerInput::serialize(Archive& ar, const unsigned int /*version*/)
+{
+  ar& boost::serialization::make_nvp("problem", problem);
+  /** @todo Fix after profiles are serializable */
+  //  ar& boost::serialization::make_nvp("profiles", profiles);
+  ar& boost::serialization::make_nvp("data_storage", data_storage);
+  ar& boost::serialization::make_nvp("task_infos", task_infos);
+  ar& boost::serialization::make_nvp("aborted", aborted_);
+}
+
 }  // namespace tesseract_planning
+
+#include <tesseract_common/serialization.h>
+TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::TaskComposerInput)
+BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::TaskComposerInput)

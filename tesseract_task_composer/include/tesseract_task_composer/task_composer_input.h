@@ -26,10 +26,15 @@
 #ifndef TESSERACT_TASK_COMPOSER_TASK_COMPOSER_INPUT_H
 #define TESSERACT_TASK_COMPOSER_TASK_COMPOSER_INPUT_H
 
-#include <tesseract_environment/environment.h>
+#include <tesseract_common/macros.h>
+TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
+#include <atomic>
+TESSERACT_COMMON_IGNORE_WARNINGS_POP
+
 #include <tesseract_command_language/profile_dictionary.h>
 #include <tesseract_task_composer/task_composer_data_storage.h>
 #include <tesseract_task_composer/task_composer_node_info.h>
+#include <tesseract_task_composer/task_composer_problem.h>
 
 namespace tesseract_planning
 {
@@ -43,69 +48,29 @@ struct TaskComposerInput
 {
   using Ptr = std::shared_ptr<TaskComposerInput>;
   using ConstPtr = std::shared_ptr<const TaskComposerInput>;
+  using UPtr = std::unique_ptr<TaskComposerInput>;
+  using ConstUPtr = std::unique_ptr<const TaskComposerInput>;
 
-  TaskComposerInput(TaskComposerDataStorage::Ptr data_storage);
+  TaskComposerInput(TaskComposerProblem problem, ProfileDictionary::ConstPtr profiles = nullptr);
+  TaskComposerInput& operator=(const TaskComposerInput&) = delete;
+  TaskComposerInput(TaskComposerInput&&) = delete;
+  TaskComposerInput& operator=(TaskComposerInput&&) = delete;
+  virtual ~TaskComposerInput() = default;
 
-  TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                    tesseract_common::ManipulatorInfo manip_info,
-                    ProfileDictionary::ConstPtr profiles,
-                    TaskComposerDataStorage::Ptr data_storage);
-
-  TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                    tesseract_common::ManipulatorInfo manip_info,
-                    ProfileRemapping move_profile_remapping,
-                    ProfileRemapping composite_profile_remapping,
-                    ProfileDictionary::ConstPtr profiles,
-                    TaskComposerDataStorage::Ptr data_storage);
-
-  TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                    ProfileRemapping move_profile_remapping,
-                    ProfileRemapping composite_profile_remapping,
-                    ProfileDictionary::ConstPtr profiles,
-                    TaskComposerDataStorage::Ptr data_storage);
-
-  TaskComposerInput(tesseract_environment::Environment::ConstPtr env,
-                    ProfileDictionary::ConstPtr profiles,
-                    TaskComposerDataStorage::Ptr data_storage);
-
-  /** @brief Tesseract associated with current state of the system */
-  const tesseract_environment::Environment::ConstPtr env;
-
-  /** @brief Global Manipulator Information */
-  const tesseract_common::ManipulatorInfo manip_info;
-
-  /**
-   * @brief This allows the remapping of the Move Profile identified in the command language to a specific profile for a
-   * given motion planner.
-   */
-  const ProfileRemapping move_profile_remapping;
-
-  /**
-   * @brief This allows the remapping of the Composite Profile identified in the command language to a specific profile
-   * for a given motion planner.
-   */
-  const ProfileRemapping composite_profile_remapping;
+  /** @brief The problem */
+  TaskComposerProblem problem;
 
   /** @brief The Profiles to use */
-  const ProfileDictionary::ConstPtr profiles;
+  ProfileDictionary::ConstPtr profiles;
 
-  /** @brief The location data is stored and retrieved during execution */
-  TaskComposerDataStorage::Ptr data_storage;
+  /**
+   * @brief The location data is stored and retrieved during execution
+   * @details The problem input data is copied into this structure when constructed
+   */
+  TaskComposerDataStorage data_storage;
 
   /** @brief The location where task info is stored during execution */
   TaskComposerNodeInfoContainer task_infos;
-
-  /** @brief This indicates if a seed was provided */
-  bool has_seed{ false };
-
-  /** @brief If true the task will save the inputs and outputs to the TaskInfo*/
-  bool save_io{ false };
-
-  //  /**
-  //   * @brief Gets the task interface for checking success and aborting active process
-  //   * @return The task interface for checking success and aborting active process
-  //   */
-  //  TaskflowInterface::Ptr getTaskInterface();
 
   /**
    * @brief Check if process has been aborted
@@ -113,6 +78,12 @@ struct TaskComposerInput
    * @return True if aborted otherwise false;
    */
   bool isAborted() const;
+
+  /**
+   * @brief If it was not aborted then it was successful
+   * @return True if successful, otherwise false
+   */
+  bool isSuccessful() const;
 
   /**
    * @brief Abort the process input
@@ -123,18 +94,25 @@ struct TaskComposerInput
   /** @brief Reset abort and data storage to constructed state */
   void reset();
 
-  void addTaskInfo(TaskComposerNodeInfo::UPtr task_info);
-  TaskComposerNodeInfo::UPtr getTaskInfo(const boost::uuids::uuid& key) const;
-  std::map<boost::uuids::uuid, TaskComposerNodeInfo::UPtr> getTaskInfoMap() const;
+  bool operator==(const TaskComposerInput& rhs) const;
+  bool operator!=(const TaskComposerInput& rhs) const;
 
 protected:
-  mutable bool aborted_{ false };
+  friend class tesseract_common::Serialization;
+  friend class boost::serialization::access;
 
-  /** @brief Store a copy of the original data storage for resolving using reset() */
-  TaskComposerDataStorage::ConstPtr original_data_storage_;
+  TaskComposerInput() = default;  // Required for serialization
+  TaskComposerInput(const TaskComposerInput&);
 
-  //  /** @brief Used to store if process input is aborted which is thread safe */
-  //  TaskflowInterface::Ptr interface_{ std::make_shared<TaskflowInterface>() };
+  template <class Archive>
+  void serialize(Archive& ar, const unsigned int version);  // NOLINT
+
+  mutable std::atomic<bool> aborted_{ false };
 };
 }  // namespace tesseract_planning
+
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/tracking.hpp>
+BOOST_CLASS_EXPORT_KEY2(tesseract_planning::TaskComposerInput, "TaskComposerInput")
+
 #endif  // TESSERACT_TASK_COMPOSER_TASK_COMPOSER_INPUT_H

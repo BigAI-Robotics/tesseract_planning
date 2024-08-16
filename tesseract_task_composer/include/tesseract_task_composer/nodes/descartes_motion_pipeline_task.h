@@ -47,19 +47,11 @@ public:
   DescartesMotionPipelineTask(std::string input_key,
                               std::string output_key,
                               std::string name = "DescartesMotionPipelineTask");
-  DescartesMotionPipelineTask(std::string input_key,
-                              std::string output_key,
-                              bool check_input,
-                              bool post_collision_check,
-                              bool post_smoothing,
-                              std::string name = "DescartesMotionPipelineTask");
-  virtual ~DescartesMotionPipelineTask() = default;
+  ~DescartesMotionPipelineTask() override = default;
   DescartesMotionPipelineTask(const DescartesMotionPipelineTask&) = delete;
   DescartesMotionPipelineTask& operator=(const DescartesMotionPipelineTask&) = delete;
   DescartesMotionPipelineTask(DescartesMotionPipelineTask&&) = delete;
   DescartesMotionPipelineTask& operator=(DescartesMotionPipelineTask&&) = delete;
-
-  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const DescartesMotionPipelineTask& rhs) const;
   bool operator!=(const DescartesMotionPipelineTask& rhs) const;
@@ -72,10 +64,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void ctor(std::string input_key, std::string output_key);
-
-  bool check_input_{ true };
-  bool post_collision_check_{ true };
-  bool post_smoothing_{ false };
 };
 }  // namespace tesseract_planning
 

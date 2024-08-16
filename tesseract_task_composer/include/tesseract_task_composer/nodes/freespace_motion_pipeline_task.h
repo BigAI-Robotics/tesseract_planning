@@ -47,19 +47,11 @@ public:
   FreespaceMotionPipelineTask(std::string input_key,
                               std::string output_key,
                               std::string name = "FreespaceMotionPipelineTask");
-  FreespaceMotionPipelineTask(std::string input_key,
-                              std::string output_key,
-                              bool check_input,
-                              bool post_collision_check,
-                              bool post_smoothing,
-                              std::string name = "FreespaceMotionPipelineTask");
-  virtual ~FreespaceMotionPipelineTask() = default;
+  ~FreespaceMotionPipelineTask() override = default;
   FreespaceMotionPipelineTask(const FreespaceMotionPipelineTask&) = delete;
   FreespaceMotionPipelineTask& operator=(const FreespaceMotionPipelineTask&) = delete;
   FreespaceMotionPipelineTask(FreespaceMotionPipelineTask&&) = delete;
   FreespaceMotionPipelineTask& operator=(FreespaceMotionPipelineTask&&) = delete;
-
-  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const FreespaceMotionPipelineTask& rhs) const;
   bool operator!=(const FreespaceMotionPipelineTask& rhs) const;
@@ -72,10 +64,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void ctor(std::string input_key, std::string output_key);
-
-  bool check_input_{ true };
-  bool post_collision_check_{ true };
-  bool post_smoothing_{ false };
 };
 }  // namespace tesseract_planning
 

@@ -47,19 +47,11 @@ public:
   CartesianMotionPipelineTask(std::string input_key,
                               std::string output_key,
                               std::string name = "CartesianMotionPipelineTask");
-  CartesianMotionPipelineTask(std::string input_key,
-                              std::string output_key,
-                              bool check_input,
-                              bool post_collision_check,
-                              bool post_smoothing,
-                              std::string name = "CartesianMotionPipelineTask");
-  virtual ~CartesianMotionPipelineTask() = default;
+  ~CartesianMotionPipelineTask() override = default;
   CartesianMotionPipelineTask(const CartesianMotionPipelineTask&) = delete;
   CartesianMotionPipelineTask& operator=(const CartesianMotionPipelineTask&) = delete;
   CartesianMotionPipelineTask(CartesianMotionPipelineTask&&) = delete;
   CartesianMotionPipelineTask& operator=(CartesianMotionPipelineTask&&) = delete;
-
-  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const CartesianMotionPipelineTask& rhs) const;
   bool operator!=(const CartesianMotionPipelineTask& rhs) const;
@@ -72,10 +64,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void ctor(std::string input_key, std::string output_key);
-
-  bool check_input_{ true };
-  bool post_collision_check_{ true };
-  bool post_smoothing_{ false };
 };
 }  // namespace tesseract_planning
 

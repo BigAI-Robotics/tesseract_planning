@@ -58,19 +58,23 @@ UpdateEndStateTask::UpdateEndStateTask(std::string input_key,
   output_keys_.push_back(std::move(output_key));
 }
 
-int UpdateEndStateTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr UpdateEndStateTask::runImpl(TaskComposerInput& input,
+                                                       OptionalTaskComposerExecutor /*executor*/) const
 {
-  if (input.isAborted())
-    return 0;
-
-  auto info = std::make_unique<UpdateEndStateTaskInfo>(uuid_, name_);
+  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
   info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   tesseract_common::Timer timer;
   timer.start();
-  //  saveInputs(*info, input);
 
-  auto input_data_poly = input.data_storage->getData(input_keys_[0]);
-  auto input_next_data_poly = input.data_storage->getData(input_keys_[1]);
+  auto input_data_poly = input.data_storage.getData(input_keys_[0]);
+  auto input_next_data_poly = input.data_storage.getData(input_keys_[1]);
 
   // --------------------
   // Check that inputs are valid
@@ -78,25 +82,21 @@ int UpdateEndStateTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
   if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     info->message = "UpdateEndStateTask: Input data for key '" + input_keys_[0] + "' must be a composite instruction";
-    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   if (input_next_data_poly.isNull() || input_next_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
   {
     info->message = "UpdateEndStateTask: Input data for key '" + input_keys_[1] + "' must be a composite instruction";
-    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
-    //    saveOutputs(*info, input);
     info->elapsed_time = timer.elapsedSeconds();
-    input.addTaskInfo(std::move(info));
-    return 0;
+    CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+    return info;
   }
 
   // Make a non-const copy of the input instructions to update the start/end
-  CompositeInstruction& instructions = input_data_poly.as<CompositeInstruction>();
+  auto& instructions = input_data_poly.as<CompositeInstruction>();
   const auto* next_start_move = input_next_data_poly.as<CompositeInstruction>().getFirstMoveInstruction();
 
   // Update end instruction
@@ -111,18 +111,11 @@ int UpdateEndStateTask::run(TaskComposerInput& input, OptionalTaskComposerExecut
     throw std::runtime_error("Invalid waypoint type");
 
   // Store results
-  input.data_storage->setData(output_keys_[0], input_data_poly);
+  input.data_storage.setData(output_keys_[0], input_data_poly);
+  info->message = "Successful";
   info->return_value = 1;
-  info->message = "UpdateEndStateTask: Successful";
-  //    saveOutputs(*info, input);
   info->elapsed_time = timer.elapsedSeconds();
-  input.addTaskInfo(std::move(info));
-  return 1;
-}
-
-TaskComposerNode::UPtr UpdateEndStateTask::clone() const
-{
-  return std::make_unique<UpdateEndStateTask>(input_keys_[0], input_keys_[1], output_keys_[0], is_conditional_, name_);
+  return info;
 }
 
 bool UpdateEndStateTask::operator==(const UpdateEndStateTask& rhs) const
@@ -139,33 +132,8 @@ void UpdateEndStateTask::serialize(Archive& ar, const unsigned int /*version*/)
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
-UpdateEndStateTaskInfo::UpdateEndStateTaskInfo(boost::uuids::uuid uuid, std::string name)
-  : TaskComposerNodeInfo(uuid, std::move(name))
-{
-}
-
-TaskComposerNodeInfo::UPtr UpdateEndStateTaskInfo::clone() const
-{
-  return std::make_unique<UpdateEndStateTaskInfo>(*this);
-}
-
-bool UpdateEndStateTaskInfo::operator==(const UpdateEndStateTaskInfo& rhs) const
-{
-  bool equal = true;
-  equal &= TaskComposerNodeInfo::operator==(rhs);
-  return equal;
-}
-bool UpdateEndStateTaskInfo::operator!=(const UpdateEndStateTaskInfo& rhs) const { return !operator==(rhs); }
-
-template <class Archive>
-void UpdateEndStateTaskInfo::serialize(Archive& ar, const unsigned int /*version*/)
-{
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNodeInfo);
-}
 }  // namespace tesseract_planning
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::UpdateEndStateTask)
 BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::UpdateEndStateTask)
-TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::UpdateEndStateTaskInfo)
-BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::UpdateEndStateTaskInfo)

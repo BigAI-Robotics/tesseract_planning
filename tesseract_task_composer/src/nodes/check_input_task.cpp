@@ -45,38 +45,50 @@ CheckInputTask::CheckInputTask(std::vector<std::string> input_keys, bool is_cond
 }
 
 CheckInputTask::CheckInputTask(std::string input_key, bool is_conditional, std::string name)
-  : CheckInputTask(std::vector<std::string>({ input_key }), is_conditional, name)
+  : CheckInputTask(std::vector<std::string>({ std::move(input_key) }), is_conditional, std::move(name))
 {
 }
 
-int CheckInputTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor /*executor*/) const
+TaskComposerNodeInfo::UPtr CheckInputTask::runImpl(TaskComposerInput& input,
+                                                   OptionalTaskComposerExecutor /*executor*/) const
 {
+  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
+  info->return_value = 0;
+
+  if (input.isAborted())
+  {
+    info->message = "Aborted";
+    return info;
+  }
+
   // Get Composite Profile
   for (const auto& key : input_keys_)
   {
-    auto input_data_poly = input.data_storage->getData(key);
+    auto input_data_poly = input.data_storage.getData(key);
     if (input_data_poly.isNull() || input_data_poly.getType() != std::type_index(typeid(CompositeInstruction)))
     {
-      CONSOLE_BRIDGE_logError("Input key '%s' is missing", key.c_str());
-      return 0;
+      info->message = "Input key '" + key + "' is missing";
+      CONSOLE_BRIDGE_logError("%s", info->message.c_str());
+      return info;
     }
 
     const auto& ci = input_data_poly.as<CompositeInstruction>();
     std::string profile = ci.getProfile();
-    profile = getProfileString(name_, profile, input.composite_profile_remapping);
+    profile = getProfileString(name_, profile, input.problem.composite_profile_remapping);
     auto cur_composite_profile =
         getProfile<CheckInputProfile>(name_, profile, *input.profiles, std::make_shared<CheckInputProfile>());
     cur_composite_profile = applyProfileOverrides(name_, profile, cur_composite_profile, ci.getProfileOverrides());
 
-    if (cur_composite_profile->isValid(input) == 0)
-      return 0;
+    if (!cur_composite_profile->isValid(input))
+    {
+      info->message = "Validator failed";
+      return info;
+    }
   }
-  return 1;
-}
 
-TaskComposerNode::UPtr CheckInputTask::clone() const
-{
-  return std::make_unique<CheckInputTask>(input_keys_, is_conditional_, name_);
+  info->message = "Successful";
+  info->return_value = 1;
+  return info;
 }
 
 bool CheckInputTask::operator==(const CheckInputTask& rhs) const
@@ -93,30 +105,8 @@ void CheckInputTask::serialize(Archive& ar, const unsigned int /*version*/)
   ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerTask);
 }
 
-CheckInputTaskInfo::CheckInputTaskInfo(boost::uuids::uuid uuid, std::string name)
-  : TaskComposerNodeInfo(uuid, std::move(name))
-{
-}
-
-TaskComposerNodeInfo::UPtr CheckInputTaskInfo::clone() const { return std::make_unique<CheckInputTaskInfo>(*this); }
-
-bool CheckInputTaskInfo::operator==(const CheckInputTaskInfo& rhs) const
-{
-  bool equal = true;
-  equal &= TaskComposerNodeInfo::operator==(rhs);
-  return equal;
-}
-bool CheckInputTaskInfo::operator!=(const CheckInputTaskInfo& rhs) const { return !operator==(rhs); }
-
-template <class Archive>
-void CheckInputTaskInfo::serialize(Archive& ar, const unsigned int /*version*/)
-{
-  ar& BOOST_SERIALIZATION_BASE_OBJECT_NVP(TaskComposerNodeInfo);
-}
 }  // namespace tesseract_planning
 
 #include <tesseract_common/serialization.h>
 TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::CheckInputTask)
 BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::CheckInputTask)
-TESSERACT_SERIALIZE_ARCHIVES_INSTANTIATE(tesseract_planning::CheckInputTaskInfo)
-BOOST_CLASS_EXPORT_IMPLEMENT(tesseract_planning::CheckInputTaskInfo)

@@ -44,6 +44,7 @@ TaskComposerGraph::TaskComposerGraph(std::string name) : TaskComposerNode(std::m
 boost::uuids::uuid TaskComposerGraph::addNode(TaskComposerNode::UPtr task_node)
 {
   boost::uuids::uuid uuid = task_node->getUUID();
+  task_node->parent_uuid_ = uuid_;
   nodes_[uuid] = std::move(task_node);
   return uuid;
 }
@@ -51,8 +52,8 @@ boost::uuids::uuid TaskComposerGraph::addNode(TaskComposerNode::UPtr task_node)
 void TaskComposerGraph::addEdges(boost::uuids::uuid source, std::vector<boost::uuids::uuid> destinations)
 {
   TaskComposerNode::Ptr& node = nodes_.at(source);
-  node->outbound_edges_.insert(node->outbound_edges_.end(), destinations.begin(), destinations.end());
 
+  node->outbound_edges_.insert(node->outbound_edges_.end(), destinations.begin(), destinations.end());
   for (const auto& d : destinations)
     nodes_.at(d)->inbound_edges_.push_back(source);
 }
@@ -100,26 +101,6 @@ void TaskComposerGraph::dumpHelper(std::ostream& os, const TaskComposerGraph& /*
   os << sub_graphs.str();
 }
 
-TaskComposerNode::UPtr TaskComposerGraph::clone() const
-{
-  auto clone_graph = std::make_unique<TaskComposerGraph>(name_);
-  std::map<boost::uuids::uuid, boost::uuids::uuid> clone_map;
-  for (const auto& node : nodes_)
-    clone_map[node.first] = clone_graph->addNode(node.second->clone());
-
-  for (const auto& node : nodes_)
-  {
-    std::vector<boost::uuids::uuid> cloned_edges;
-    cloned_edges.reserve(node.second->outbound_edges_.size());
-    for (const auto& edge : node.second->outbound_edges_)
-      cloned_edges.push_back(clone_map[edge]);
-
-    clone_graph->addEdges(clone_map[node.first], cloned_edges);
-  }
-
-  return clone_graph;
-}
-
 bool TaskComposerGraph::operator==(const TaskComposerGraph& rhs) const
 {
   bool equal = true;
@@ -130,7 +111,7 @@ bool TaskComposerGraph::operator==(const TaskComposerGraph& rhs) const
     {
       auto it = rhs.nodes_.find(pair.first);
       equal &= (it == rhs.nodes_.end());
-      if (equal == true)
+      if (equal)
         equal &= (*(pair.second) == *(it->second));
     }
   }

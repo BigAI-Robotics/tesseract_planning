@@ -50,7 +50,7 @@ public:
   using ConstUPtr = std::unique_ptr<const TaskComposerGraph>;
 
   TaskComposerGraph(std::string name = "TaskComposerGraph");
-  virtual ~TaskComposerGraph() = default;
+  ~TaskComposerGraph() override = default;
   TaskComposerGraph(const TaskComposerGraph&) = delete;
   TaskComposerGraph& operator=(const TaskComposerGraph&) = delete;
   TaskComposerGraph(TaskComposerGraph&&) = delete;
@@ -79,8 +79,6 @@ public:
   std::map<boost::uuids::uuid, TaskComposerNode::ConstPtr> getNodes() const;
 
   void dump(std::ostream& os) const override;
-
-  TaskComposerNode::UPtr clone() const override;
 
   bool operator==(const TaskComposerGraph& rhs) const;
   bool operator!=(const TaskComposerGraph& rhs) const;

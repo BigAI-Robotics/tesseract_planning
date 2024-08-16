@@ -64,10 +64,6 @@ public:
   FixStateCollisionTask(FixStateCollisionTask&&) = delete;
   FixStateCollisionTask& operator=(FixStateCollisionTask&&) = delete;
 
-  int run(TaskComposerInput& input, OptionalTaskComposerExecutor executor = std::nullopt) const override final;
-
-  TaskComposerNode::UPtr clone() const override final;
-
   bool operator==(const FixStateCollisionTask& rhs) const;
   bool operator!=(const FixStateCollisionTask& rhs) const;
 
@@ -76,6 +72,9 @@ protected:
   friend class boost::serialization::access;
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
+
+  TaskComposerNodeInfo::UPtr runImpl(TaskComposerInput& input,
+                                     OptionalTaskComposerExecutor executor = std::nullopt) const override final;
 };
 
 class FixStateCollisionTaskInfo : public TaskComposerNodeInfo
@@ -91,8 +90,6 @@ public:
                             std::string name = profile_ns::FIX_STATE_COLLISION_DEFAULT_NAMESPACE);
 
   std::vector<tesseract_collision::ContactResultMap> contact_results;
-
-  TaskComposerNodeInfo::UPtr clone() const override;
 
   bool operator==(const FixStateCollisionTaskInfo& rhs) const;
   bool operator!=(const FixStateCollisionTaskInfo& rhs) const;
@@ -110,6 +107,7 @@ private:
  * @return True if in collision
  */
 bool stateInCollision(const Eigen::Ref<const Eigen::VectorXd>& start_pos,
+                      const tesseract_common::ManipulatorInfo& manip_info,
                       const TaskComposerInput& input,
                       const FixStateCollisionProfile& profile,
                       tesseract_collision::ContactResultMap& contacts);
@@ -121,6 +119,7 @@ bool stateInCollision(const Eigen::Ref<const Eigen::VectorXd>& start_pos,
  * @return True if in collision
  */
 bool waypointInCollision(const WaypointPoly& waypoint,
+                         const tesseract_common::ManipulatorInfo& manip_info,
                          const TaskComposerInput& input,
                          const FixStateCollisionProfile& profile,
                          tesseract_collision::ContactResultMap& contacts);
@@ -133,6 +132,7 @@ bool waypointInCollision(const WaypointPoly& waypoint,
  * @return True if successful
  */
 bool moveWaypointFromCollisionTrajopt(WaypointPoly& waypoint,
+                                      const tesseract_common::ManipulatorInfo& manip_info,
                                       const TaskComposerInput& input,
                                       const FixStateCollisionProfile& profile);
 
@@ -144,10 +144,12 @@ bool moveWaypointFromCollisionTrajopt(WaypointPoly& waypoint,
  * @return True if successful
  */
 bool moveWaypointFromCollisionRandomSampler(WaypointPoly& waypoint,
+                                            const tesseract_common::ManipulatorInfo& manip_info,
                                             const TaskComposerInput& input,
                                             const FixStateCollisionProfile& profile);
 
 bool applyCorrectionWorkflow(WaypointPoly& waypoint,
+                             const tesseract_common::ManipulatorInfo& manip_info,
                              const TaskComposerInput& input,
                              const FixStateCollisionProfile& profile);
 }  // namespace tesseract_planning

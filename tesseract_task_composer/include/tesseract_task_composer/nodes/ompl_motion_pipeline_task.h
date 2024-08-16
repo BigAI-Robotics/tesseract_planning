@@ -45,19 +45,11 @@ public:
    */
   OMPLMotionPipelineTask(std::string name = "OMPLMotionPipelineTask");
   OMPLMotionPipelineTask(std::string input_key, std::string output_key, std::string name = "OMPLMotionPipelineTask");
-  OMPLMotionPipelineTask(std::string input_key,
-                         std::string output_key,
-                         bool check_input,
-                         bool post_collision_check,
-                         bool post_smoothing,
-                         std::string name = "OMPLMotionPipelineTask");
-  virtual ~OMPLMotionPipelineTask() = default;
+  ~OMPLMotionPipelineTask() override = default;
   OMPLMotionPipelineTask(const OMPLMotionPipelineTask&) = delete;
   OMPLMotionPipelineTask& operator=(const OMPLMotionPipelineTask&) = delete;
   OMPLMotionPipelineTask(OMPLMotionPipelineTask&&) = delete;
   OMPLMotionPipelineTask& operator=(OMPLMotionPipelineTask&&) = delete;
-
-  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const OMPLMotionPipelineTask& rhs) const;
   bool operator!=(const OMPLMotionPipelineTask& rhs) const;
@@ -70,10 +62,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void ctor(std::string input_key, std::string output_key);
-
-  bool check_input_{ true };
-  bool post_collision_check_{ true };
-  bool post_smoothing_{ false };
 };
 }  // namespace tesseract_planning
 

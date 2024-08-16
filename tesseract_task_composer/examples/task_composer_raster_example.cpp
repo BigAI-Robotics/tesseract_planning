@@ -9,7 +9,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_task_composer/task_composer_graph.h>
 #include <tesseract_task_composer/task_composer_data_storage.h>
-#include <tesseract_task_composer/nodes/raster_motion_task.h>
+#include <tesseract_task_composer/nodes/raster_ft_motion_task.h>
 #include <tesseract_task_composer/taskflow/taskflow_task_composer_executor.h>
 
 #include <tesseract_common/types.h>
@@ -50,24 +50,32 @@ int main()
   CompositeInstruction program = rasterExampleProgram();
   program.print();
 
-  auto task_data = std::make_shared<TaskComposerDataStorage>();
-  task_data->setData("input_program", program);
+  // Create data storage
+  TaskComposerDataStorage task_data;
+  task_data.setData("input_program", program);
 
-  auto task_input = std::make_shared<TaskComposerInput>(env, profiles, task_data);
+  // Create problem
+  TaskComposerProblem task_problem(env, task_data);
 
-  TaskComposerTask::UPtr task = std::make_unique<RasterMotionTask>("input_program", "output_program");
+  // Create task input
+  auto task_input = std::make_shared<TaskComposerInput>(task_problem, profiles);
 
+  // Create raster task
+  TaskComposerTask::UPtr task = std::make_unique<RasterFtMotionTask>("input_program", "output_program");
+
+  // Save dot graph
   std::ofstream tc_out_data;
   tc_out_data.open(tesseract_common::getTempPath() + "task_composer_raster_example.dot");
   task->dump(tc_out_data);  // dump the graph including dynamic tasks
   tc_out_data.close();
 
+  // Solve raster plan
   auto task_executor = std::make_shared<TaskflowTaskComposerExecutor>();
   TaskComposerFuture::UPtr future = task_executor->run(*task, *task_input);
   future->wait();
 
   // Plot Process Trajectory
-  auto output_program = task_data->getData("output_program").as<CompositeInstruction>();
+  auto output_program = task_input->data_storage.getData("output_program").as<CompositeInstruction>();
   if (plotter != nullptr && plotter->isConnected())
   {
     plotter->waitForInput();
@@ -75,35 +83,6 @@ int main()
   }
 
   std::cout << "Execution Complete" << std::endl;
-
-  //  // Create Process Planning Server
-  //  ProcessPlanningServer planning_server(std::make_shared<ProcessEnvironmentCache>(env), 1);
-  //  planning_server.loadDefaultProcessPlanners();
-
-  //  // Create Process Planning Request
-  //  ProcessPlanningRequest request;
-  //  request.name = process_planner_names::RASTER_G_FT_PLANNER_NAME;
-
-  //  // Define the program
-  //  CompositeInstruction program = rasterExampleProgram();
-  //  request.instructions = InstructionPoly(program);
-
-  //  // Print Diagnostics
-  //  request.instructions.print("Program: ");
-
-  //  // Solve process plan
-  //  ProcessPlanningFuture response = planning_server.run(request);
-  //  planning_server.waitForAll();
-
-  //  // Plot Process Trajectory
-  //  if (plotter != nullptr && plotter->isConnected())
-  //  {
-  //    plotter->waitForInput();
-  //    plotter->plotTrajectory(toJointTrajectory(response.problem->results->as<CompositeInstruction>()),
-  //                            *env->getStateSolver());
-  //  }
-
-  //  std::cout << "Execution Complete" << std::endl;
 
   //  // Print summary statistics
   //  std::map<std::size_t, TaskInfo::UPtr> info_map = response.interface->getTaskInfoMap();

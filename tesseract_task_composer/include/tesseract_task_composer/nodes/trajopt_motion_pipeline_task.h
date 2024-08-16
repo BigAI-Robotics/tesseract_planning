@@ -47,19 +47,11 @@ public:
   TrajOptMotionPipelineTask(std::string input_key,
                             std::string output_key,
                             std::string name = "TrajOptMotionPipelineTask");
-  TrajOptMotionPipelineTask(std::string input_key,
-                            std::string output_key,
-                            bool check_input,
-                            bool post_collision_check,
-                            bool post_smoothing,
-                            std::string name = "TrajOptMotionPipelineTask");
-  virtual ~TrajOptMotionPipelineTask() = default;
+  ~TrajOptMotionPipelineTask() override = default;
   TrajOptMotionPipelineTask(const TrajOptMotionPipelineTask&) = delete;
   TrajOptMotionPipelineTask& operator=(const TrajOptMotionPipelineTask&) = delete;
   TrajOptMotionPipelineTask(TrajOptMotionPipelineTask&&) = delete;
   TrajOptMotionPipelineTask& operator=(TrajOptMotionPipelineTask&&) = delete;
-
-  TaskComposerNode::UPtr clone() const override final;
 
   bool operator==(const TrajOptMotionPipelineTask& rhs) const;
   bool operator!=(const TrajOptMotionPipelineTask& rhs) const;
@@ -72,10 +64,6 @@ protected:
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
   void ctor(std::string input_key, std::string output_key);
-
-  bool check_input_{ true };
-  bool post_collision_check_{ true };
-  bool post_smoothing_{ false };
 };
 }  // namespace tesseract_planning
 
