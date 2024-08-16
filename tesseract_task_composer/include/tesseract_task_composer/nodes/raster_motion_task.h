@@ -27,7 +27,7 @@
 #define TESSERACT_TASK_COMPOSER_RASTER_MOTION_TASK_H
 
 #include <tesseract_task_composer/task_composer_task.h>
-#include <tesseract_common/any.h>
+#include <tesseract_common/any_poly.h>
 
 namespace tesseract_planning
 {
@@ -79,7 +79,7 @@ protected:
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version);  // NOLINT
 
-  void checkTaskInput(const tesseract_common::Any& input) const;
+  void checkTaskInput(const tesseract_common::AnyPoly& input) const;
 };
 
 class RasterMotionTaskInfo : public TaskComposerNodeInfo

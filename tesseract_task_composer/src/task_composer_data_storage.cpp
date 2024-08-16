@@ -41,13 +41,13 @@ bool TaskComposerDataStorage::hasKey(const std::string& key)
   return (data_.find(key) != data_.end());
 }
 
-void TaskComposerDataStorage::setData(const std::string& key, tesseract_common::Any data)
+void TaskComposerDataStorage::setData(const std::string& key, tesseract_common::AnyPoly data)
 {
   std::unique_lock lock(mutex_);
   data_[key] = data;
 }
 
-tesseract_common::Any TaskComposerDataStorage::getData(const std::string& key) const
+tesseract_common::AnyPoly TaskComposerDataStorage::getData(const std::string& key) const
 {
   std::shared_lock lock(mutex_);
   auto it = data_.find(key);

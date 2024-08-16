@@ -250,7 +250,7 @@ int RasterMotionTask::run(TaskComposerInput& input, OptionalTaskComposerExecutor
   return 1;
 }
 
-void RasterMotionTask::checkTaskInput(const tesseract_common::Any& input) const
+void RasterMotionTask::checkTaskInput(const tesseract_common::AnyPoly& input) const
 {
   // -------------
   // Check Input

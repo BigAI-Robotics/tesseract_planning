@@ -33,7 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
 #include <shared_mutex>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
-#include <tesseract_common/any.h>
+#include <tesseract_common/any_poly.h>
 
 namespace tesseract_planning
 {
@@ -64,7 +64,7 @@ public:
    * @param key The key to set data for
    * @param data The data to assign to the provided key
    */
-  void setData(const std::string& key, tesseract_common::Any data);
+  void setData(const std::string& key, tesseract_common::AnyPoly data);
 
   /**
    * @brief Get the data for the provided key
@@ -72,11 +72,11 @@ public:
    * @param key The key to retreive the data
    * @return The data associated with the key
    */
-  tesseract_common::Any getData(const std::string& key) const;
+  tesseract_common::AnyPoly getData(const std::string& key) const;
 
 protected:
   mutable std::shared_mutex mutex_;
-  std::unordered_map<std::string, tesseract_common::Any> data_;
+  std::unordered_map<std::string, tesseract_common::AnyPoly> data_;
 };
 
 }  // namespace tesseract_planning
