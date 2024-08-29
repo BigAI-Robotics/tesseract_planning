@@ -45,7 +45,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 namespace tesseract_planning
 {
 /**
- * @brief Extract toolpath from a composite instruction
+ * @brief Extract toolpath from a instruction
  * @param instruction The instruction to extract toolpath
  * @param env The environment object used for getting kinematics and tcp information
  * @return A toolpath in world coordinate system
@@ -53,6 +53,69 @@ namespace tesseract_planning
 tesseract_common::Toolpath toToolpath(const InstructionPoly& instruction,
                                       const tesseract_environment::Environment& env);
 
+/**
+ * @brief Extract toolpath from a composite instruction
+ * @param instruction The instruction to extract toolpath
+ * @param env The environment object used for getting kinematics and tcp information
+ * @return A toolpath in world coordinate system
+ */
+tesseract_common::Toolpath toToolpath(const CompositeInstruction& ci, const tesseract_environment::Environment& env);
+
+/**
+ * @brief Extract toolpath from a move instruction
+ * @param instruction The instruction to extract toolpath
+ * @param env The environment object used for getting kinematics and tcp information
+ * @return A toolpath in world coordinate system
+ */
+tesseract_common::Toolpath toToolpath(const MoveInstructionPoly& mi, const tesseract_environment::Environment& env);
+
+/**
+ * @brief This will assign the current state as the seed for all cartesian waypoint
+ * @param composite_instructions The input program
+ * @param env The environment information
+ */
+void assignCurrentStateAsSeed(CompositeInstruction& composite_instructions,
+                              const tesseract_environment::Environment& env);
+
+/**
+ * @brief This formats the joint and state waypoints to align with the kinematics object
+ * @param composite_instructions The input program to format
+ * @param env The environment information
+ * @return True if the program required formatting.
+ */
+bool formatProgram(CompositeInstruction& composite_instructions, const tesseract_environment::Environment& env);
+
+/**
+ * @brief Should perform a continuous collision check over the trajectory.
+ * @param contacts A vector of vector of ContactMap where each index corresponds to a timestep
+ * @param manager A continuous contact manager
+ * @param state_solver The environment state solver
+ * @param program The program to check for contacts
+ * @param config CollisionCheckConfig used to specify collision check settings
+ * @return True if collision was found, otherwise false.
+ */
+bool contactCheckProgram(std::vector<tesseract_collision::ContactResultMap>& contacts,
+                         tesseract_collision::ContinuousContactManager& manager,
+                         const tesseract_scene_graph::StateSolver& state_solver,
+                         const CompositeInstruction& program,
+                         const tesseract_collision::CollisionCheckConfig& config);
+
+/**
+ * @brief Should perform a discrete collision check over the trajectory
+ * @param contacts A vector of vector of ContactMap where each index corresponds to a timestep
+ * @param manager A continuous contact manager
+ * @param state_solver The environment state solver
+ * @param program The program to check for contacts
+ * @param config CollisionCheckConfig used to specify collision check settings
+ * @return True if collision was found, otherwise false.
+ */
+bool contactCheckProgram(std::vector<tesseract_collision::ContactResultMap>& contacts,
+                         tesseract_collision::DiscreteContactManager& manager,
+                         const tesseract_scene_graph::StateSolver& state_solver,
+                         const CompositeInstruction& program,
+                         const tesseract_collision::CollisionCheckConfig& config);
+
+// Retain the legacy
 /**
  * @brief A program flatten filter
  * @param instruction The instruction to flatten
@@ -120,55 +183,6 @@ flattenProgramToPattern(CompositeInstruction& composite_instruction, const Compo
  */
 std::vector<std::reference_wrapper<const InstructionPoly>>
 flattenProgramToPattern(const CompositeInstruction& composite_instruction, const CompositeInstruction& pattern);
-
-/**
- * @brief Should perform a continuous collision check over the trajectory.
- * @param contacts A vector of vector of ContactMap where each index corresponds to a timestep
- * @param manager A continuous contact manager
- * @param state_solver The environment state solver
- * @param program The program to check for contacts
- * @param config CollisionCheckConfig used to specify collision check settings
- * @return True if collision was found, otherwise false.
- */
-bool contactCheckProgram(std::vector<tesseract_collision::ContactResultMap>& contacts,
-                         tesseract_collision::ContinuousContactManager& manager,
-                         const tesseract_scene_graph::StateSolver& state_solver,
-                         const CompositeInstruction& program,
-                         const tesseract_collision::CollisionCheckConfig& config);
-
-/**
- * @brief Should perform a discrete collision check over the trajectory
- * @param contacts A vector of vector of ContactMap where each index corresponds to a timestep
- * @param manager A continuous contact manager
- * @param state_solver The environment state solver
- * @param program The program to check for contacts
- * @param config CollisionCheckConfig used to specify collision check settings
- * @return True if collision was found, otherwise false.
- */
-bool contactCheckProgram(std::vector<tesseract_collision::ContactResultMap>& contacts,
-                         tesseract_collision::DiscreteContactManager& manager,
-                         const tesseract_scene_graph::StateSolver& state_solver,
-                         const CompositeInstruction& program,
-                         const tesseract_collision::CollisionCheckConfig& config);
-
-/**
- * @brief This generates a naive seed for the provided program
- * @details This will generate a seed where each plan instruction has a single move instruction associated to it using
- * the current state.
- * @param composite_instructions The input program
- * @param env The environment information
- * @return The generated seed
- */
-CompositeInstruction generateNaiveSeed(const CompositeInstruction& composite_instructions,
-                                       const tesseract_environment::Environment& env);
-
-/**
- * @brief This formats the joint and state waypoints to align with the kinematics object
- * @param composite_instructions The input program to format
- * @param env The environment information
- * @return True if the program required formatting.
- */
-bool formatProgram(CompositeInstruction& composite_instructions, const tesseract_environment::Environment& env);
 
 }  // namespace tesseract_planning
 

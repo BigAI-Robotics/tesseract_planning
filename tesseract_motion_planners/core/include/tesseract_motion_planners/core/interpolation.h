@@ -443,18 +443,6 @@ Eigen::MatrixXd interpolate(const Eigen::Ref<const Eigen::VectorXd>& start,
  * @return A vector of waypoints with a length = steps + 1
  */
 std::vector<WaypointPoly> interpolate_waypoint(const WaypointPoly& start, const WaypointPoly& stop, long steps);
-
-/**
- * @brief This takes the provided seed state for the base_instruction and create a corresponding composite instruction
- * @param joint_names The joint names associated with the states
- * @param states The joint states to populate the composite instruction with
- * @param base_instruction The base instruction used to extract profile and manipulator information from
- * @return The composite instruction
- */
-CompositeInstruction getInterpolatedCompositeLegacy(const std::vector<std::string>& joint_names,
-                                                    const Eigen::MatrixXd& states,
-                                                    const MoveInstructionPoly& base_instruction);
-
 /**
  * @brief This takes the provided seed state for the base_instruction and create a vector of move instruction
  * @details This skips the first state
@@ -499,6 +487,17 @@ Eigen::VectorXd getClosestJointSolution(const KinematicGroupInstructionInfo& inf
 std::array<Eigen::VectorXd, 2> getClosestJointSolution(const KinematicGroupInstructionInfo& info1,
                                                        const KinematicGroupInstructionInfo& info2,
                                                        const Eigen::VectorXd& seed);
+
+/**
+ * @brief This takes the provided seed state for the base_instruction and create a corresponding composite instruction
+ * @param joint_names The joint names associated with the states
+ * @param states The joint states to populate the composite instruction with
+ * @param base_instruction The base instruction used to extract profile and manipulator information from
+ * @return The composite instruction
+ */
+CompositeInstruction getInterpolatedCompositeLegacy(const std::vector<std::string>& joint_names,
+                                                    const Eigen::MatrixXd& states,
+                                                    const MoveInstructionPoly& base_instruction);
 
 }  // namespace tesseract_planning
 

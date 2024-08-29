@@ -56,8 +56,9 @@ RasterCtOnlyMotionTask::RasterCtOnlyMotionTask(std::string input_key,
 TaskComposerNodeInfo::UPtr RasterCtOnlyMotionTask::runImpl(TaskComposerInput& input,
                                                            OptionalTaskComposerExecutor executor) const
 {
-  auto info = std::make_unique<TaskComposerNodeInfo>(uuid_, name_);
+  auto info = std::make_unique<TaskComposerNodeInfo>(*this);
   info->return_value = 0;
+  info->env = input.problem.env;
 
   if (input.isAborted())
   {

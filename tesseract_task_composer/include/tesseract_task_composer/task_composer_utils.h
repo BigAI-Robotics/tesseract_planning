@@ -1,13 +1,13 @@
 /**
- * @file types.h
- * @brief Tesseract process managers types
+ * @file task_composer_utils.h
+ * @brief A task composer utils
  *
  * @author Levi Armstrong
- * @date December 19, 2020
+ * @date August 27, 2022
  * @version TODO
  * @bug No known bugs
  *
- * @copyright Copyright (c) 2020, Southwest Research Institute
+ * @copyright Copyright (c) 2022, Levi Armstrong
  *
  * @par License
  * Software License Agreement (Apache License)
@@ -23,18 +23,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef TESSERACT_PROCESS_MANAGERS_TYPES_H
-#define TESSERACT_PROCESS_MANAGERS_TYPES_H
+#ifndef TESSERACT_TASK_COMPOSER_TASK_COMPOSER_UTILS_H
+#define TESSERACT_TASK_COMPOSER_TASK_COMPOSER_UTILS_H
 
-#include <tesseract_common/macros.h>
-TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
-#include <functional>
-TESSERACT_COMMON_IGNORE_WARNINGS_POP
+#include <tesseract_task_composer/task_composer_server.h>
 
 namespace tesseract_planning
 {
-using TaskflowVoidFn = std::function<void()>;
-using TaskflowIntFn = std::function<int()>;
-}  // namespace tesseract_planning
+void loadDefaultTaskComposerNodes(TaskComposerServer& server,
+                                  const std::string& input_key,
+                                  const std::string& output_key);
+}
 
-#endif  // TESSERACT_PROCESS_MANAGERS_TYPES_H
+#endif  // TESSERACT_TASK_COMPOSER_TASK_COMPOSER_UTILS_H

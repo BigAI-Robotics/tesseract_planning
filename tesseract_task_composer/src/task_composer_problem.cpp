@@ -26,14 +26,19 @@
 
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
-#include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/shared_ptr.hpp>
+#if (BOOST_VERSION >= 107400) && (BOOST_VERSION < 107500)
+#include <boost/serialization/library_version_type.hpp>
+#endif
+#include <boost/serialization/unordered_map.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_task_composer/task_composer_problem.h>
 
 namespace tesseract_planning
 {
+TaskComposerProblem::TaskComposerProblem(std::string name) : name(std::move(name)) {}
+
 TaskComposerProblem::TaskComposerProblem(TaskComposerDataStorage input_data, std::string name)
   : name(std::move(name)), input_data(std::move(input_data))
 {

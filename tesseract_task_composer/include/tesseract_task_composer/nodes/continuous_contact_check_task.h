@@ -33,7 +33,7 @@ TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
 #include <tesseract_task_composer/task_composer_task.h>
 #include <tesseract_task_composer/task_composer_node_info.h>
-#include <tesseract_task_composer/nodes/default_task_namespaces.h>
+#include <tesseract_task_composer/task_composer_node_names.h>
 
 namespace tesseract_planning
 {
@@ -48,7 +48,7 @@ public:
   ContinuousContactCheckTask() = default;  // Required for serialization
   ContinuousContactCheckTask(std::string input_key,
                              bool is_conditional = true,
-                             std::string name = profile_ns::CONTINUOUS_CONTACT_CHECK_DEFAULT_NAMESPACE);
+                             std::string name = node_names::CONTINUOUS_CONTACT_CHECK_TASK_NAME);
   ~ContinuousContactCheckTask() override = default;
   ContinuousContactCheckTask(const ContinuousContactCheckTask&) = delete;
   ContinuousContactCheckTask& operator=(const ContinuousContactCheckTask&) = delete;
@@ -77,8 +77,7 @@ public:
   using ConstUPtr = std::unique_ptr<const ContinuousContactCheckTaskInfo>;
 
   ContinuousContactCheckTaskInfo() = default;
-  ContinuousContactCheckTaskInfo(boost::uuids::uuid uuid,
-                                 std::string name = profile_ns::CONTINUOUS_CONTACT_CHECK_DEFAULT_NAMESPACE);
+  ContinuousContactCheckTaskInfo(const ContinuousContactCheckTask& task);
 
   std::vector<tesseract_collision::ContactResultMap> contact_results;
 

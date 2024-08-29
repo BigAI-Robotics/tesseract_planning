@@ -111,7 +111,7 @@ inline CompositeInstruction generateSeedLegacy(const CompositeInstruction& instr
   for (const auto& i : flat)
     if (i.get().isMoveInstruction())
       profiles->addProfile<SimplePlannerLegacyPlanProfile>(
-          planner.getName(), i.get().as<MoveInstructionPoly>().getProfile(), profile);
+        planner.getName(), i.get().as<MoveInstructionPoly>().getProfile(), profile);
 
   // Assign profile dictionary
   request.profiles = profiles;

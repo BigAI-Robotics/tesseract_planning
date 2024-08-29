@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>tesseract_task_composer</name>
-  <version>0.12.0</version>
+  <version>0.14.0</version>
   <description>The Tesseract Task Composer package</description>
   <author email="levi.armstrong@gmail.com">Levi Armstrong</author>
   <maintainer email="levi.armstrong@gmail.com">Levi Armstrong</maintainer>
@@ -18,6 +18,7 @@
   <depend>tesseract_command_language</depend>
   <depend>tesseract_motion_planners</depend>
   <depend>tesseract_time_parameterization</depend>
+  <depend>taskflow</depend>
 
   <build_depend>eigen</build_depend>
   <build_export_depend>eigen</build_export_depend>
@@ -26,6 +27,9 @@
   <exec_depend>libboost-serialization</exec_depend>
 
   <test_depend>gtest</test_depend>
+  <test_depend>tesseract_support</test_depend>
+  <test_depend>tesseract_kinematics</test_depend>
+  <test_depend>gperftools</test_depend>
 
   <export>
     <build_type>cmake</build_type>

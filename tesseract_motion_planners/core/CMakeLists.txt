@@ -28,15 +28,13 @@ target_include_directories(${PROJECT_NAME}_core PUBLIC "$<BUILD_INTERFACE:${CMAK
 add_library(
   ${PROJECT_NAME}_simple
   src/simple/simple_motion_planner.cpp
-  src/simple/profile/simple_planner_lvs_plan_profile.cpp
-  src/simple/profile/simple_planner_lvs_no_ik_plan_profile.cpp
-  src/simple/profile/simple_planner_fixed_size_assign_plan_profile.cpp
-  src/simple/profile/simple_planner_fixed_size_plan_profile.cpp
   src/simple/simple_motion_legacy_planner.cpp
   src/simple/profile/simple_planner_lvs_legacy_plan_profile.cpp
+  src/simple/profile/simple_planner_lvs_plan_profile.cpp
+  src/simple/profile/simple_planner_lvs_no_ik_plan_profile.cpp
   src/simple/profile/simple_planner_lvs_no_ik_legacy_plan_profile.cpp
-  src/simple/profile/simple_planner_fixed_size_assign_legacy_plan_profile.cpp
-  src/simple/profile/simple_planner_fixed_size_legacy_plan_profile.cpp)
+  src/simple/profile/simple_planner_fixed_size_assign_plan_profile.cpp
+  src/simple/profile/simple_planner_fixed_size_plan_profile.cpp)
 target_link_libraries(${PROJECT_NAME}_simple PUBLIC ${PROJECT_NAME}_core Boost::boost)
 target_compile_options(${PROJECT_NAME}_simple PRIVATE ${TESSERACT_COMPILE_OPTIONS_PRIVATE})
 target_compile_options(${PROJECT_NAME}_simple PUBLIC ${TESSERACT_COMPILE_OPTIONS_PUBLIC})

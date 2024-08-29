@@ -26,6 +26,10 @@
 
 #include <tesseract_common/macros.h>
 TESSERACT_COMMON_IGNORE_WARNINGS_PUSH
+#include <boost/version.hpp>
+#if (BOOST_VERSION >= 107400) && (BOOST_VERSION < 107500)
+#include <boost/serialization/library_version_type.hpp>
+#endif
 #include <boost/serialization/unordered_map.hpp>
 TESSERACT_COMMON_IGNORE_WARNINGS_POP
 
@@ -86,6 +90,12 @@ void TaskComposerDataStorage::removeData(const std::string& key)
 {
   std::unique_lock lock(mutex_);
   data_.erase(key);
+}
+
+std::unordered_map<std::string, tesseract_common::AnyPoly> TaskComposerDataStorage::getData() const
+{
+  std::shared_lock lock(mutex_);
+  return data_;
 }
 
 bool TaskComposerDataStorage::operator==(const TaskComposerDataStorage& rhs) const
